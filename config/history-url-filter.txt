@@ -1,0 +1,17 @@
+https://login.live.com/.*
+https://go.microsoft.com/.*
+https://www.microsoft.com/.*
+http://facebook.com/
+https://facebook.com/
+http://gmail.com/
+https://accounts.google.com/.*
+https://accounts.google.is/.*
+https://mail.google.com/.*
+https://www.google.com/.*
+file:///.*
+http://quora.com/
+https://quora.com/
+https://quora.com/.*
+https://www.quora.com/.*
+https://quora.com/google.*
+.*google.com.*
