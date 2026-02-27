@@ -23,6 +23,11 @@ public class TextEntryDao {
         return uuid;
     }
 
+    public static void update(TextEntry textEntry) {
+        String dateTimeStr = DatabaseAdapter.instantToTime(textEntry.instant);
+        runSql("UPDATE " + TABLE_NAME + " SET NAME='" + textEntry.name + "', TIME='" + dateTimeStr + "' WHERE UUID='" +  textEntry.uuid + "'");
+    }
+
     public static TextEntry findByUUID(String uuid) {
         return DatabaseAdapter.selectOne("SELECT * FROM " + TABLE_NAME + " WHERE UUID='" + uuid + "'", new TextEntry.ResultSetTransform());
     }

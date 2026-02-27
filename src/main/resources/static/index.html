@@ -1,0 +1,103 @@
+<html>
+<head>
+    <link href="digitalbrynjar.css" rel="stylesheet"/>
+    <script>
+        function searchKeyDown(ele) {
+            if(event.key === 'Enter') {
+                search(ele.value)
+            }
+        }
+        function search(value) {
+            var encodedUrl = encodeURI("search?keywords=" + value);
+            var html = ""
+            $.ajax({
+                url: encodedUrl,
+                cache: false,
+                success: function(result){
+                    var list = result.results;
+                    if (list.length == 0)
+                        html = "<p>There were no results for <b>" + value + "</b></p><br/>";
+                    else {
+                        for (let i = 0; i < list.length; i++) {
+                            var href = null;
+                            var title = null;
+                            if (list[i].source.startsWith('http')) {
+                                href = list[i].source;
+                                title = list[i].name;
+                            }
+                            else {
+                                href = "localFile?filePath=" + list[i].source;
+                                href = href.replaceAll("\\", "/");
+                                href = encodeURI(href);
+                                title = list[i].name;
+                                title = title.replaceAll("\\", "/");
+                                //title = encodeURI(title);
+                            }
+                            html += "<a target='_blank' rel='noopener noreferrer' href='" + href + "'>" + title + "</a><br/>"
+                        }
+                    }
+                    $("#results").html(html);
+                }
+            });
+        }
+    </script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<div id="search">
+    <svg viewBox="0 0 420 60" xmlns="http://www.w3.org/2000/svg">
+        <rect class="bar"/>
+
+        <g class="magnifier">
+            <circle class="glass"/>
+            <line class="handle" x1="32" y1="32" x2="44" y2="44"></line>
+        </g>
+
+        <!--
+        <g class="sparks">
+            <circle class="spark"/>
+            <circle class="spark"/>
+            <circle class="spark"/>
+        </g>
+
+        <g class="burst pattern-one">
+            <circle class="particle circle"/>
+            <path class="particle triangle"/>
+            <circle class="particle circle"/>
+            <path class="particle plus"/>
+            <rect class="particle rect"/>
+            <path class="particle triangle"/>
+        </g>
+        <g class="burst pattern-two">
+            <path class="particle plus"/>
+            <circle class="particle circle"/>
+            <path class="particle triangle"/>
+            <rect class="particle rect"/>
+            <circle class="particle circle"/>
+            <path class="particle plus"/>
+        </g>
+        <g class="burst pattern-three">
+            <circle class="particle circle"/>
+            <rect class="particle rect"/>
+            <path class="particle plus"/>
+            <path class="particle triangle"/>
+            <rect class="particle rect"/>
+            <path class="particle plus"/>
+        </g>
+        -->
+    </svg>
+    <input type=search name=q aria-label="Search for inspiration" onkeydown="searchKeyDown(this)" autofocus/>
+    <!--
+    <button type="button" onclick="search(this.parentNode.children[1])">Search</button>
+    -->
+</div>
+
+<div id="results">
+
+</div>
+
+<p>TODO, read database for latest entries</p><br/>
+<p>TODO, area to see entries grouped by time</p><br/>
+</body>
+</html>

@@ -103,4 +103,14 @@ public class AppConfig {
         }
         return path.toFile();
     }
+
+    @Bean
+    public FileChangeWatcher fileChangeWatcher(CamelContext camelContext) {
+        return new FileChangeWatcher();
+    }
+
+    @Bean
+    public ContentReceive contentReceive(CamelContext camelContext) {
+        return new ContentReceive(camelContext);
+    }
 }

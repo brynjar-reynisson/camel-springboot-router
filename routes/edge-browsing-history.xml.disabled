@@ -1,0 +1,34 @@
+<routes>
+    <route id="edge-browsing-history-reader">
+        <from uri="scheduler:edge-browsing-history-scheduler?delay=60000&amp;initialDelay=0"/>
+
+        <setProperty name="url-history-marker-file">
+            <simple>edge.url.history.marker.txt</simple>
+        </setProperty>
+        <setProperty name="url-history-db-file">
+            <simple>{{edge.history.copyfile}}</simple>
+        </setProperty>
+
+        <bean ref="fileDeletion" method="deleteFile({{edge.history.copyfile}})"/>
+        <bean ref="fileCopy" method="copyFile(&quot;{{edge.history.src}}&quot;, &quot;{{edge.history.copyfile}}&quot;)"/>
+        <process ref="#class:com.breynisson.router.history.ChromiumTimeMarkReader"/>
+        <process ref="#class:com.breynisson.router.history.ChromiumUrlReader"/>
+        <split>
+            <simple>${body}</simple>
+            <filter>
+                <method ref="historyUrlFilter" method="test"/>
+                <to uri="direct:history-url"/>
+            </filter>
+        </split>
+
+        <process ref="#class:com.breynisson.router.history.ChromiumTimeMarkWriter"/>
+
+    </route>
+    <route id="history-url">
+        <from uri="direct:history-url"/>
+        <process ref="#class:com.breynisson.router.history.HistoryUrlTransformer"/>
+        <process ref="#class:com.breynisson.router.history.HistoryUrlDownloadProcessor"/>
+        <process ref="#class:com.breynisson.router.history.HtmlTextExtractor"/>
+        <to uri="lucene:historyUrlIndex:insert?analyzer=#class:org.apache.lucene.analysis.standard.StandardAnalyzer&amp;indexDir=#luceneHistoryUrl"/>
+    </route>
+</routes>
