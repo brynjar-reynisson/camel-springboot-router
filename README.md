@@ -1,0 +1,68 @@
+# Digital Me
+
+A personal search engine that indexes your local files and browsing history so you can find anything you've read or worked on.
+
+## What it does
+
+- **Indexes local files** — watches configured folders (e.g. `Documents`, Google Drive) for changes and indexes their text content using Apache Lucene.
+- **Indexes web pages you visit** — a Chrome extension sends the text of every page you browse to the backend, where it is indexed automatically.
+- **Full-text search** — a React web UI lets you search across all indexed content and shows paginated results linking back to the original file or URL.
+
+## Components
+
+### Backend — Spring Boot + Apache Camel
+- REST API served on `http://localhost:8080`
+- Apache Camel routes (`routes/`) drive file watching and content ingestion
+- Lucene full-text index stored in `lucene-index/`
+- SQLite database (`digital-me.db`) tracks indexed entries
+
+### Frontend — React (Vite)
+- Source in `frontend/`
+- Built output served as static files by Spring Boot from `src/main/resources/static/`
+- Search box with paginated results (10 per page), each link opening in a new tab
+
+### Chrome Extension
+- Source in `chrome-extension/`
+- Sends the text content of every visited page to `POST /addContent` on the local backend
+
+## Prerequisites
+
+- Java 19+
+- Maven 3.x
+- Node.js 20.19+
+
+## Running
+
+**Build and start:**
+```bash
+mvn package
+java -jar target/camel-springboot-router-0.1.jar
+```
+
+The app will be available at [http://localhost:8080](http://localhost:8080).
+
+**Frontend development** (hot reload, proxied to the running backend):
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Chrome Extension
+
+Load the `chrome-extension/` folder as an unpacked extension in Chrome or Edge (`chrome://extensions` → Enable developer mode → Load unpacked). The extension will start sending page content to the local backend automatically.
+
+## Project Structure
+
+```
+├── frontend/               React search UI (Vite)
+├── chrome-extension/       Browser extension for page ingestion
+├── routes/                 Apache Camel route definitions (XML)
+├── src/
+│   └── main/
+│       ├── java/           Spring Boot + Camel backend
+│       └── resources/
+│           ├── static/     Built frontend assets (generated)
+│           └── application.properties
+└── pom.xml
+```
