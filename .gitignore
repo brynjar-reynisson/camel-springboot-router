@@ -1,0 +1,4 @@
+target/
+lucene-index/
+*.db
+*.db.original
