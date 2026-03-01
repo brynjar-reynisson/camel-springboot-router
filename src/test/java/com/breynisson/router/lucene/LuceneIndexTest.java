@@ -30,7 +30,7 @@ class LuceneIndexTest {
                 "Trump golden shoes are not selling"
         };
         for (String s : content) {
-            LuceneIndex.createOrUpdateIndex(s, "test");
+            LuceneIndex.createOrUpdateIndex(s, s);
         }
         List<Document> documents = LuceneIndex.find("trump golden shoes");
         assertEquals(5, documents.size());

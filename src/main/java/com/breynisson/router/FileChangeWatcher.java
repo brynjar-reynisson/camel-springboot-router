@@ -3,8 +3,6 @@ package com.breynisson.router;
 import com.breynisson.router.jdbc.TextEntryDao;
 import com.breynisson.router.jdbc.model.TextEntry;
 import com.breynisson.router.lucene.LuceneIndex;
-import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,6 +16,22 @@ import java.util.stream.Stream;
 public class FileChangeWatcher {
 
     public void watchDirectory(String directoryPath) throws IOException {
+
+        if (directoryPath.endsWith("/*")) {
+            String baseDir = directoryPath.substring(0, directoryPath.length() - 2);
+            watchDirectory(baseDir);
+            try (Stream<Path> subDirs = Files.list(Paths.get(baseDir))) {
+                subDirs.filter(p -> p.toFile().isDirectory())
+                       .forEach(p -> {
+                           try {
+                               watchDirectory(p + "/*");
+                           } catch (IOException e) {
+                               System.out.println(e.getMessage());
+                           }
+                       });
+            }
+            return;
+        }
 
         //scan files in directory
         try (Stream<Path> pathsStream = Files.list(Paths.get(directoryPath))) {
