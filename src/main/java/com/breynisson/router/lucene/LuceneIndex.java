@@ -73,8 +73,14 @@ public class LuceneIndex {
         }
     }
 
+    private static String indexPath = "lucene-index";
+
+    public static void setIndexPath(String path) {
+        indexPath = path;
+    }
+
     static String getIndexPath() {
-        return "lucene-index";
+        return indexPath;
     }
 
     public static void deleteIndex() {

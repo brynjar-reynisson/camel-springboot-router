@@ -1,20 +1,23 @@
 package com.breynisson.router.lucene;
 
 import org.apache.lucene.document.Document;
-import org.apache.lucene.search.ScoreDoc;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
-import java.util.HashMap;
+import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class LuceneIndexTest {
 
+    @TempDir
+    Path indexDir;
+
     @BeforeEach
     void beforeEach() {
+        LuceneIndex.setIndexPath(indexDir.toString());
         LuceneIndex.deleteIndex();
     }
 

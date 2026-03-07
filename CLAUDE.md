@@ -32,8 +32,6 @@ camel-springboot-router/
 │   ├── manifest.json
 │   ├── content-script.js     Extracts page text, sends to background
 │   └── background.js         POSTs to /addContent
-├── config/
-│   └── history-url-filter.txt  URL blocklist for Edge history route
 ├── digital-me-dev/           Runtime data directory (gitignored)
 │   ├── routes/               Camel XML routes (loaded at runtime)
 │   │   └── local-file-changes.xml            Active: file watcher + content-receive
@@ -132,7 +130,8 @@ The app must be run with `digital-me-dev/` as the working directory so relative 
 - On new/changed file: calls `LuceneIndex.createOrUpdateIndex()` + `TextEntryDao.insert/update()`
 
 ### `LuceneIndex` (static utility class)
-- Index stored at `./lucene-index/` relative to the working directory (i.e. `digital-me-dev/lucene-index/` at runtime)
+- Index path defaults to `./lucene-index/` but can be overridden via `LuceneIndex.setIndexPath()` (used in tests)
+- At runtime resolves to `digital-me-dev/lucene-index/`
 - Document key field: `source` — delete-then-reinsert on update
 - Stored fields: `source` (StringField), `name` (StringField), `body` (TextField)
 - `find()` uses `QueryParser` on the `body` field, returns up to 1,000,000 hits
@@ -143,7 +142,7 @@ The app must be run with `digital-me-dev/` as the working directory so relative 
 - `init()` must be called at startup — runs numbered migration scripts from classpath (`digital-me-db-N.sql`)
 - Migration tracking: `APPLICATION_METADATA` table with `database.version` key
 - To add a migration: create `src/main/resources/digital-me-db-2.sql` (next number)
-- `setDefaultDatabasePath()` used in tests to point at a test DB
+- `setDefaultDatabasePath()` also closes and nulls the current connection, so the new path takes effect immediately
 
 ### `TextEntryDao`
 - `NAME` column stores the file absolute path or URL (`source`)
@@ -185,10 +184,12 @@ TEXT_ENTRY_METADATA (TEXT_ENTRY_UUID, KEY, VALUE, PK composite)
 ## Testing conventions
 
 - JUnit 5; test class names end in `Test`
-- Tests hit the real SQLite DB — use `DatabaseAdapter.setDefaultDatabasePath()` to redirect to a temp DB
+- DB tests use `./digital-me-unit-tests/digital-me.db` (gitignored); call `DatabaseAdapter.setDefaultDatabasePath()` + `DatabaseAdapter.init()` in `@BeforeAll` to set up the schema
+- `FileChangeWatcherTest` uses a static `@TempDir` for the DB so it gets a fresh isolated database per test class
+- Call `DatabaseAdapter.setDefaultDatabasePath(null)` in `@AfterAll` to close the connection and release file locks
+- Use `LuceneIndex.setIndexPath()` in `@BeforeEach` (with a `@TempDir`) to isolate Lucene state per test
 - Use `LuceneIndex.deleteIndex()` in `@BeforeEach`/`@AfterEach` to reset index state
-- Use `@TempDir` for temp file creation
-- Clean up DB rows explicitly in tests via `TextEntryDao.delete()` (no automatic rollback)
+- Clean up DB rows explicitly in tests (no automatic rollback); delete before insert to guard against leftover state from prior failed runs
 - `LuceneQuery.java` in `src/test/` is a manual query utility, not a test class
 
 ---

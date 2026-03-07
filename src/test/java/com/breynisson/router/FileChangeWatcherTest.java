@@ -1,9 +1,12 @@
 package com.breynisson.router;
 
+import com.breynisson.router.jdbc.DatabaseAdapter;
 import com.breynisson.router.jdbc.TextEntryDao;
 import com.breynisson.router.lucene.LuceneIndex;
 import org.apache.lucene.document.Document;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -18,12 +21,30 @@ import static org.junit.jupiter.api.Assertions.*;
 class FileChangeWatcherTest {
 
     @TempDir
+    static Path dbDir;
+
+    @TempDir
     Path tempDir;
+
+    @TempDir
+    Path indexDir;
 
     private final FileChangeWatcher watcher = new FileChangeWatcher();
 
+    @BeforeAll
+    static void setUpDatabase() {
+        DatabaseAdapter.setDefaultDatabasePath(dbDir.resolve("test.db").toString());
+        DatabaseAdapter.init();
+    }
+
+    @AfterAll
+    static void tearDownDatabase() {
+        DatabaseAdapter.setDefaultDatabasePath(null);
+    }
+
     @BeforeEach
     void setUp() {
+        LuceneIndex.setIndexPath(indexDir.toString());
         LuceneIndex.deleteIndex();
     }
 

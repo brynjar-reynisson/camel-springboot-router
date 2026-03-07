@@ -1,7 +1,5 @@
 package com.breynisson.router;
 
-import com.breynisson.router.history.HistoryUrlFilter;
-import com.breynisson.router.docker.DockerComponent;
 import org.apache.camel.CamelContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,11 +14,6 @@ import java.nio.file.Paths;
 public class AppConfig {
 
     @Bean
-    public DockerComponent docker(CamelContext camelContext) {
-        return new DockerComponent(camelContext);
-    }
-
-    @Bean
     public FileDeletion fileDeletion(CamelContext camelContext) {
         return new FileDeletion();
     }
@@ -28,11 +21,6 @@ public class AppConfig {
     @Bean
     public FileCopy fileCopy(CamelContext camelContext) {
         return new FileCopy();
-    }
-
-    @Bean
-    public HistoryUrlFilter historyUrlFilter(CamelContext camelContext) {
-        return new HistoryUrlFilter();
     }
 
     @Bean

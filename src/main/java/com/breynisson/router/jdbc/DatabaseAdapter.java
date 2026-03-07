@@ -25,6 +25,8 @@ public class DatabaseAdapter {
 
     public static void setDefaultDatabasePath(String defaultDatabasePath) {
         DatabaseAdapter.defaultDatabasePath = defaultDatabasePath;
+        safeClose(connection);
+        connection = null;
     }
 
     private static Connection connection = null;
