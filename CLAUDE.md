@@ -19,7 +19,6 @@ Personal search engine that indexes local `.txt` files and web pages visited via
 | Full-text search | Apache Lucene (via camel-lucene-starter) |
 | Database | SQLite via `sqlite-jdbc` |
 | HTML parsing | Jsoup |
-| Messaging | IBM MQ (optional, configured via properties) |
 | Frontend | React 19, Vite 7 |
 | Browser extension | Chrome/Edge Manifest V3 |
 
@@ -184,14 +183,8 @@ TEXT_ENTRY_METADATA (TEXT_ENTRY_UUID, KEY, VALUE, PK composite)
 
 | Property | Default | Purpose |
 |---|---|---|
-| `wmq.hostname` | `127.0.0.1` | IBM MQ host |
-| `wmq.port` | `1414` | IBM MQ port |
-| `wmq.queue-manager` | `UNDEFINED` | IBM MQ queue manager |
-| `wmq.channel` | `UNDEFINED` | IBM MQ channel |
 | `edge.history.src` | `%USERPROFILE%\AppData\...\History` | Edge history SQLite file |
 | `edge.history.copyfile` | same dir, `HistoryCopy` | Where Edge history is copied before reading |
-
-IBM MQ is wired up eagerly in `AppConfig` — the app will log a connection error on startup if MQ is not available, but continues running.
 
 ---
 
