@@ -1,4 +1,5 @@
 target/
-lucene-index/
+digital-me-dev/lucene-index/
 *.db
 *.db.original
+digital-me-dev/

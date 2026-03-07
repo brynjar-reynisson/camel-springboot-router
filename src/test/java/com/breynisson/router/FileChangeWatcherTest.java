@@ -134,7 +134,7 @@ class FileChangeWatcherTest {
         watcher.watchDirectory(tempDir.toString());
 
         // Index should remain empty — the file was not re-indexed
-        assertTrue(TextEntryDao.findByName(file.toAbsolutePath().toString()).size() == 1);
+        assertEquals(1, TextEntryDao.findByName(file.toAbsolutePath().toString()).size());
         assertThrows(Exception.class, () -> LuceneIndex.find("stable content"));
 
         cleanupDb(file);

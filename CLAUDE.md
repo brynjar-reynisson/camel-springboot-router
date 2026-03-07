@@ -34,20 +34,21 @@ camel-springboot-router/
 │   └── background.js         POSTs to /addContent
 ├── config/
 │   └── history-url-filter.txt  URL blocklist for Edge history route
+├── digital-me-dev/           Runtime data directory (gitignored)
+│   ├── routes/               Camel XML routes (loaded at runtime)
+│   │   └── local-file-changes.xml            Active: file watcher + content-receive
+│   ├── lucene-index/         Lucene index files
+│   ├── content-receive/      Drop files here to trigger ContentReceive route
+│   └── digital-me.db         SQLite database
 ├── frontend/                 React + Vite search UI
 │   └── src/
 │       └── App.jsx           Single-page search UI
-├── routes/                   Camel XML routes (loaded at runtime)
-│   ├── local-file-changes.xml            Active: file watcher + content-receive
-│   └── edge-browsing-history.xml.disabled  Disabled: rename to .xml to enable
 ├── src/main/java/com/breynisson/router/
 │   ├── SpringBootApplication.java   Entry point; calls DatabaseAdapter.init()
 │   ├── AppConfig.java               Spring @Configuration; registers all beans
 │   ├── Constants.java               Shared string constants
 │   ├── FileChangeWatcher.java       Watches dirs, indexes changed .txt files
 │   ├── ContentReceive.java          Camel processor for file:content-receive route
-│   ├── docker/                      Custom Camel component: docker:copyto
-│   ├── history/                     Edge browsing history ingestion
 │   ├── jdbc/
 │   │   ├── DatabaseAdapter.java     SQLite connection + migration runner
 │   │   ├── TextEntryDao.java        CRUD for TEXT_ENTRY table
@@ -109,22 +110,16 @@ cd frontend && npm run lint    # ESLint
 
 ## Camel routes
 
-Routes are XML files in `./routes/` loaded at runtime via:
+Routes are XML files in `digital-me-dev/routes/` loaded at runtime via:
 ```
 camel.springboot.routes-include-pattern = file:./routes/*.xml
 ```
-Modifying route files does **not** require a rebuild — restart the JVM.
+The app must be run with `digital-me-dev/` as the working directory so relative paths resolve correctly. Modifying route files does **not** require a rebuild — restart the JVM.
 
 ### `local-file-changes.xml` (active)
 - `scheduler:file-change-watcher` fires every 5 seconds
 - Calls `FileChangeWatcher.watchDirectory()` for configured paths
 - `file:content-receive` polls the `content-receive/` directory and processes dropped files via `ContentReceive`
-
-### `edge-browsing-history.xml.disabled` (disabled)
-- Reads Edge browser SQLite history file on a 60-second schedule
-- Filters URLs via `config/history-url-filter.txt`
-- Downloads pages, extracts text, indexes into `./lucene-history-url/`
-- Enable by renaming to `.xml`
 
 ---
 
@@ -137,7 +132,7 @@ Modifying route files does **not** require a rebuild — restart the JVM.
 - On new/changed file: calls `LuceneIndex.createOrUpdateIndex()` + `TextEntryDao.insert/update()`
 
 ### `LuceneIndex` (static utility class)
-- Index stored at `./lucene-index/` relative to the working directory
+- Index stored at `./lucene-index/` relative to the working directory (i.e. `digital-me-dev/lucene-index/` at runtime)
 - Document key field: `source` — delete-then-reinsert on update
 - Stored fields: `source` (StringField), `name` (StringField), `body` (TextField)
 - `find()` uses `QueryParser` on the `body` field, returns up to 1,000,000 hits
@@ -155,16 +150,6 @@ Modifying route files does **not** require a rebuild — restart the JVM.
 - `findByName(source)` is used to check if an entry exists before insert vs. update
 - Note: SQL is built via string concatenation (not parameterized for some queries)
 
-### URL filter (`HistoryUrlFilter`)
-- Reads `config/history-url-filter.txt` once (lazy, cached)
-- Lines containing `.*` are compiled as regex; others are exact-match strings
-- Returns `false` (filter out) if URL matches any rule
-
-### Docker component (`docker/`)
-- Custom Camel component registered as `docker:`
-- Only supported command: `docker:copyto?container=...&destDir=...&tmpDir=...`
-- Copies files into a running Docker container
-
 ---
 
 ## Database schema
@@ -176,15 +161,6 @@ TEXT_ENTRY_METADATA (TEXT_ENTRY_UUID, KEY, VALUE, PK composite)
 ```
 
 `TIME` is stored as ISO-8601 instant string (e.g. `2024-01-15T10:30:00Z`).
-
----
-
-## Configuration (`application.properties`)
-
-| Property | Default | Purpose |
-|---|---|---|
-| `edge.history.src` | `%USERPROFILE%\AppData\...\History` | Edge history SQLite file |
-| `edge.history.copyfile` | same dir, `HistoryCopy` | Where Edge history is copied before reading |
 
 ---
 
