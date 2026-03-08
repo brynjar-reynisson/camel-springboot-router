@@ -7,6 +7,8 @@ import com.breynisson.router.lucene.LuceneIndex;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexableField;
 import org.jsoup.Jsoup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.HtmlUtils;
@@ -24,6 +26,8 @@ import java.util.concurrent.locks.ReentrantLock;
 @RestController
 public class IndexPage {
 
+    private static final Logger log = LoggerFactory.getLogger(IndexPage.class);
+
     private Lock lock = new ReentrantLock();
 
     @GetMapping("/")
@@ -33,6 +37,7 @@ public class IndexPage {
 
     @GetMapping("/search")
     public Map<String, Object> search(@RequestParam String keywords) {
+        log.info("Search: {}", keywords);
         List<Document> results = LuceneIndex.find(keywords);
         Map<String, Object> resultMap = new HashMap<>();
         Set<SearchResult> list = new LinkedHashSet<>();
@@ -60,6 +65,7 @@ public class IndexPage {
         lock.lock();
         AddContentResponse contentResponse = new AddContentResponse();
         try {
+            log.info("addContent: {}", addContentRequest.getSource());
             String content = addContentRequest.getContent();
             if (addContentRequest.getSource().startsWith("http")) {
                 content = Jsoup.parse(content).text();
@@ -75,6 +81,7 @@ public class IndexPage {
             }
             contentResponse.setSuccess(true);
         } catch (Exception e) {
+            log.error("Error in addContent for {}", addContentRequest.getSource(), e);
             contentResponse.setSuccess(false);
             contentResponse.setErrorMessage(e.getMessage());
         }

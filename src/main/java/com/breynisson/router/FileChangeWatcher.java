@@ -4,6 +4,9 @@ import com.breynisson.router.jdbc.TextEntryDao;
 import com.breynisson.router.jdbc.model.TextEntry;
 import com.breynisson.router.lucene.LuceneIndex;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,6 +17,8 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public class FileChangeWatcher {
+
+    private static final Logger log = LoggerFactory.getLogger(FileChangeWatcher.class);
 
     public void watchDirectory(String directoryPath) throws IOException {
 
@@ -26,7 +31,7 @@ public class FileChangeWatcher {
                            try {
                                watchDirectory(p + "/*");
                            } catch (IOException e) {
-                               System.out.println(e.getMessage());
+                               log.error("Error watching directory {}", p, e);
                            }
                        });
             }
@@ -54,7 +59,7 @@ public class FileChangeWatcher {
                             updateFileInfo(file, null);
                         }
                     } catch (IOException | RouterException e) {
-                        System.out.println(e.getMessage());
+                        log.error("Error processing file {}", file.getAbsolutePath(), e);
                     }
                 }
             });
@@ -64,6 +69,7 @@ public class FileChangeWatcher {
     private void updateFileInfo(File file, TextEntry textEntry) throws IOException {
         String content = Files.readString(file.toPath());
         String source = file.getAbsolutePath();
+        log.info("Indexing {}", source);
         LuceneIndex.createOrUpdateIndex(content, source, file.getName());
         if (textEntry != null) {
             TextEntryDao.update(textEntry);
