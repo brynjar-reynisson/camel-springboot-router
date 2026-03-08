@@ -14,7 +14,8 @@ Personal search engine that indexes local `.txt` files and web pages visited via
 
 | Layer | Technology |
 |---|---|
-| Backend | Spring Boot 2.7.5, Apache Camel 4.0.2, Java 19, Maven |
+| Backend | Spring Boot 3.3.11, Apache Camel 4.8.0, Java 19, Maven |
+| MCP server | MCP SDK 1.0.0 (`io.modelcontextprotocol.sdk:mcp`) |
 | Web server | Undertow (Tomcat explicitly excluded in pom.xml) |
 | Full-text search | Apache Lucene (via camel-lucene-starter) |
 | Database | SQLite via `sqlite-jdbc` |
@@ -37,6 +38,7 @@ camel-springboot-router/
 │   │   └── local-file-changes.xml            Active: file watcher + content-receive
 │   ├── lucene-index/         Lucene index files
 │   ├── content-receive/      Drop files here to trigger ContentReceive route
+│   ├── mcp-resources/        Files saved by MCP clients (year-month subdirs)
 │   └── digital-me.db         SQLite database
 ├── frontend/                 React + Vite search UI
 │   └── src/
@@ -55,6 +57,12 @@ camel-springboot-router/
 │   │   └── model/                  TextEntry, TextEntryMetadata POJOs
 │   ├── lucene/
 │   │   └── LuceneIndex.java         Static Lucene index helpers
+│   ├── mcp/
+│   │   ├── McpServerConfig.java     MCP server (resources + search tool)
+│   │   └── ResourceReceiver.java    Writes MCP client content to mcp-resources/
+│   ├── digitalme/
+│   │   ├── DigitalMeStorage.java    Abstraction over Lucene index + SQLite
+│   │   └── DefaultDigitalMeStorage.java
 │   └── ui/
 │       └── IndexPage.java           REST controller (@RestController)
 └── src/main/resources/
@@ -191,6 +199,39 @@ TEXT_ENTRY_METADATA (TEXT_ENTRY_UUID, KEY, VALUE, PK composite)
 - Use `LuceneIndex.deleteIndex()` in `@BeforeEach`/`@AfterEach` to reset index state
 - Clean up DB rows explicitly in tests (no automatic rollback); delete before insert to guard against leftover state from prior failed runs
 - `LuceneQuery.java` in `src/test/` is a manual query utility, not a test class
+
+---
+
+## MCP server
+
+Exposed at `POST /mcp` (Streamable HTTP transport, `HttpServletStreamableServerTransportProvider`).
+
+**Capabilities:**
+- **Resources** — lists and reads all files under `digital-me-dev/mcp-resources/<year-month>/`
+- **Tools** — `search(keywords)` delegates to `DigitalMeStorage.search()`
+
+**Key classes:**
+- `McpServerConfig` — `@Configuration` that registers transport, servlet, and `McpSyncServer` beans
+- `ResourceReceiver` — writes MCP-submitted content to `mcp-resources/<year-month>/<timestamp-name>.txt`; first line is source URL
+
+**Claude Desktop config** (Microsoft Store: `AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "digital-me": {
+      "command": "npx",
+      "args": ["mcp-remote", "http://localhost:8080/mcp"]
+    }
+  }
+}
+```
+`mcp-remote` is required because Claude Desktop only supports stdio; it proxies to the HTTP endpoint.
+
+**Compatibility notes:**
+- Spring Boot 3.3.11 required (MCP SDK uses `jakarta.servlet`)
+- `camel-xml-io-dsl-starter` required in Camel 4.x for XML route loading
+- `lucene-backward-codecs:9.11.1` required to read old Lucene 8.7 (`Lucene87`) indexes
+- `jackson-annotations:2.20` forced in `<dependencyManagement>` (MCP SDK's Jackson 3.x needs `JsonFormat.Shape.POJO`)
 
 ---
 

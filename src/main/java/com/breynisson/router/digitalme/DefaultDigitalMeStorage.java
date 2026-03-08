@@ -50,6 +50,9 @@ public class DefaultDigitalMeStorage implements DigitalMeStorage {
             String content = addContentRequest.getContent();
             if (addContentRequest.getSource().startsWith("http")) {
                 content = Jsoup.parse(content).text();
+                content = content.replace('\n', ' ');
+                content = content.replace('\t', ' ');
+                addContentRequest.setContent(content);
             }
             resourceReceiver.addContent(addContentRequest);
             LuceneIndex.createOrUpdateIndex(content, addContentRequest.getSource(), addContentRequest.getName());
