@@ -1,5 +1,8 @@
 target/
-digital-me-dev/lucene-index/
+lucene-index/
 *.db
 *.db.original
 digital-me-dev/
+.claude/
+.idea/
+frontend/node/
