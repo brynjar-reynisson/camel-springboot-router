@@ -1,8 +1,9 @@
 package com.breynisson.router;
 
+import com.breynisson.router.digitalme.AddContentRequest;
+import com.breynisson.router.digitalme.DigitalMeStorage;
 import com.breynisson.router.jdbc.TextEntryDao;
 import com.breynisson.router.jdbc.model.TextEntry;
-import com.breynisson.router.lucene.LuceneIndex;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,13 +13,18 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Instant;
 import java.util.List;
 import java.util.stream.Stream;
 
 public class FileChangeWatcher {
 
     private static final Logger log = LoggerFactory.getLogger(FileChangeWatcher.class);
+
+    private final DigitalMeStorage storage;
+
+    public FileChangeWatcher(DigitalMeStorage storage) {
+        this.storage = storage;
+    }
 
     public void watchDirectory(String directoryPath) throws IOException {
 
@@ -46,17 +52,11 @@ public class FileChangeWatcher {
                     try {
                         String source = file.getAbsolutePath();
                         List<TextEntry> textEntries = TextEntryDao.findByName(source);
-                        if (!textEntries.isEmpty()) {
-                            TextEntry textEntry = textEntries.get(0);
-                            long instantSecond = textEntry.instant.getEpochSecond();
-                            long fileSecond = file.lastModified() / 1000;
-                            if (instantSecond < fileSecond) {
-                                TextEntry newTextEntry = new TextEntry(textEntry.uuid, Instant.now(), textEntry.name);
-                                updateFileInfo(file, newTextEntry);
-                            }
-                        } else {
-                            //new entry
-                            updateFileInfo(file, null);
+                        boolean isNew = textEntries.isEmpty();
+                        boolean isModified = !isNew &&
+                                textEntries.get(0).instant.getEpochSecond() < file.lastModified() / 1000;
+                        if (isNew || isModified) {
+                            updateFileInfo(file);
                         }
                     } catch (IOException | RouterException e) {
                         log.error("Error processing file {}", file.getAbsolutePath(), e);
@@ -66,15 +66,13 @@ public class FileChangeWatcher {
         }
     }
 
-    private void updateFileInfo(File file, TextEntry textEntry) throws IOException {
-        String content = Files.readString(file.toPath());
+    private void updateFileInfo(File file) throws IOException {
         String source = file.getAbsolutePath();
         log.info("Indexing {}", source);
-        LuceneIndex.createOrUpdateIndex(content, source, file.getName());
-        if (textEntry != null) {
-            TextEntryDao.update(textEntry);
-        } else {
-            TextEntryDao.insert(source, Instant.now());
-        }
+        AddContentRequest req = new AddContentRequest();
+        req.setSource(source);
+        req.setName(file.getName());
+        req.setContent(Files.readString(file.toPath()));
+        storage.addContent(req);
     }
 }

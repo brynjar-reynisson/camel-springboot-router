@@ -36,6 +36,16 @@ public class TextEntryDao {
         return DatabaseAdapter.selectList("SELECT * FROM " + TABLE_NAME + " WHERE NAME='" + name + "'", new TextEntry.ResultSetTransform());
     }
 
+    public static void insertOrUpdate(String source) {
+        List<TextEntry> textEntries = findByName(source);
+        if (!textEntries.isEmpty()) {
+            TextEntry textEntry = textEntries.get(0);
+            update(new TextEntry(textEntry.uuid, Instant.now(), textEntry.name));
+        } else {
+            insert(source, Instant.now());
+        }
+    }
+
     public static void delete(String uuid) {
         TextEntryMetadataDao.deleteByUUID(uuid);
         DatabaseAdapter.runSql("DELETE FROM " + TABLE_NAME + " WHERE UUID='" + uuid + "'");

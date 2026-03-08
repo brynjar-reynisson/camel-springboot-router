@@ -1,5 +1,7 @@
 package com.breynisson.router;
 
+import com.breynisson.router.digitalme.DefaultDigitalMeStorage;
+import com.breynisson.router.digitalme.DigitalMeStorage;
 import com.breynisson.router.jdbc.DatabaseAdapter;
 import com.breynisson.router.lucene.LuceneIndex;
 import org.apache.camel.CamelContext;
@@ -10,10 +12,18 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AppConfig {
 
+    private final String dataDir;
+
     public AppConfig(@Value("${data.dir:.}") String dataDir) {
+        this.dataDir = dataDir;
         DatabaseAdapter.setDefaultDatabasePath(dataDir + "/digital-me.db");
         LuceneIndex.setIndexPath(dataDir + "/lucene-index");
         DatabaseAdapter.init();
+    }
+
+    @Bean
+    public DigitalMeStorage digitalMeStorage() {
+        return new DefaultDigitalMeStorage(dataDir);
     }
 
     @Bean
@@ -27,8 +37,8 @@ public class AppConfig {
     }
 
     @Bean
-    public FileChangeWatcher fileChangeWatcher(CamelContext camelContext) {
-        return new FileChangeWatcher();
+    public FileChangeWatcher fileChangeWatcher(DigitalMeStorage digitalMeStorage) {
+        return new FileChangeWatcher(digitalMeStorage);
     }
 
     @Bean

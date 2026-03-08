@@ -20,14 +20,17 @@ import java.util.*;
 
 public class LuceneIndex {
 
+    public static final String FIELD_SOURCE = "source";
+    public static final String FIELD_NAME = "name";
+
     public static void createOrUpdateIndex(String content, String source) {
         createOrUpdateIndex(content, source, source);
     }
 
     public static void createOrUpdateIndex(String content, String source, String name) {
         Map<String, String> properties = new HashMap<>();
-        properties.put("source", source);
-        properties.put("name", name);
+        properties.put(FIELD_SOURCE, source);
+        properties.put(FIELD_NAME, name);
         createOrUpdateIndex(content, properties);
     }
 
@@ -38,8 +41,8 @@ public class LuceneIndex {
             IndexWriterConfig indexWriterConfig = new IndexWriterConfig();
             indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
             try (IndexWriter writer = new IndexWriter(indexDir, indexWriterConfig)) {
-                String source = properties.get("source");
-                writer.deleteDocuments(new Term("source", source));
+                String source = properties.get(FIELD_SOURCE);
+                writer.deleteDocuments(new Term(FIELD_SOURCE, source));
                 Document doc = new Document();
                 properties.forEach((key, value) -> {
                     Field field = new StringField(key, value, Field.Store.YES);
