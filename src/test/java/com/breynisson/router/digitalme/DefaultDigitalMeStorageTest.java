@@ -3,6 +3,7 @@ package com.breynisson.router.digitalme;
 import com.breynisson.router.jdbc.DatabaseAdapter;
 import com.breynisson.router.jdbc.TextEntryDao;
 import com.breynisson.router.lucene.LuceneIndex;
+import com.breynisson.router.mcp.EmbeddingIndex;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -38,7 +39,7 @@ class DefaultDigitalMeStorageTest {
     void setUp() {
         LuceneIndex.setIndexPath(indexDir.toString());
         LuceneIndex.deleteIndex();
-        storage = new DefaultDigitalMeStorage(dataDir.toString());
+        storage = new DefaultDigitalMeStorage(dataDir.toString(), new EmbeddingIndex(text -> null, dataDir.toString()));
     }
 
     @AfterEach

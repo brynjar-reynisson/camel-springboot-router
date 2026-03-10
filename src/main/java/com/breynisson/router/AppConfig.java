@@ -2,6 +2,7 @@ package com.breynisson.router;
 
 import com.breynisson.router.digitalme.DefaultDigitalMeStorage;
 import com.breynisson.router.digitalme.DigitalMeStorage;
+import com.breynisson.router.mcp.EmbeddingIndex;
 import com.breynisson.router.jdbc.DatabaseAdapter;
 import com.breynisson.router.lucene.LuceneIndex;
 import org.apache.camel.CamelContext;
@@ -22,8 +23,8 @@ public class AppConfig {
     }
 
     @Bean
-    public DigitalMeStorage digitalMeStorage() {
-        return new DefaultDigitalMeStorage(dataDir);
+    public DigitalMeStorage digitalMeStorage(EmbeddingIndex embeddingIndex) {
+        return new DefaultDigitalMeStorage(dataDir, embeddingIndex);
     }
 
     @Bean

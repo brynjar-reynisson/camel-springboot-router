@@ -26,7 +26,7 @@ public class ResourceReceiver {
         this.mcpResourcesDir = Paths.get(dataDir, MCP_RESOURCES_DIR);
     }
 
-    public void addContent(AddContentRequest request) throws IOException {
+    public Path addContent(AddContentRequest request) throws IOException {
         String rawName = request.getName() != null ? request.getName() : request.getSource();
         // prefix with day-hour-minute-second to avoid conflicts; sanitize invalid chars
         LocalDateTime now = LocalDateTime.now();
@@ -41,8 +41,16 @@ public class ResourceReceiver {
             fileName += ".txt";
         }
         Path monthDir = monthDir(YearMonth.from(now));
-        Files.writeString(monthDir.resolve(fileName), request.getSource() + "\n" + request.getContent());
+        Path written = monthDir.resolve(fileName);
+        Files.writeString(written, request.getSource() + "\n" + request.getContent());
         log.info("Wrote resource: {}/{}", monthDir.getFileName(), fileName);
+        return written;
+    }
+
+    /** Extracts the source URL from an mcp-resources file (first line, trimmed). */
+    static String firstLine(String content) {
+        int nl = content.indexOf('\n');
+        return (nl >= 0 ? content.substring(0, nl) : content).trim();
     }
 
     private Path monthDir(YearMonth yearMonth) throws IOException {

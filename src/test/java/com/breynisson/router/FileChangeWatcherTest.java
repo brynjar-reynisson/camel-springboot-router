@@ -4,6 +4,7 @@ import com.breynisson.router.digitalme.DefaultDigitalMeStorage;
 import com.breynisson.router.jdbc.DatabaseAdapter;
 import com.breynisson.router.jdbc.TextEntryDao;
 import com.breynisson.router.lucene.LuceneIndex;
+import com.breynisson.router.mcp.EmbeddingIndex;
 import org.apache.lucene.document.Document;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -50,7 +51,7 @@ class FileChangeWatcherTest {
     void setUp() {
         LuceneIndex.setIndexPath(indexDir.toString());
         LuceneIndex.deleteIndex();
-        watcher = new FileChangeWatcher(new DefaultDigitalMeStorage(dataDir.toString()));
+        watcher = new FileChangeWatcher(new DefaultDigitalMeStorage(dataDir.toString(), new EmbeddingIndex(text -> null, dataDir.toString())));
     }
 
     @AfterEach

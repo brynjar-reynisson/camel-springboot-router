@@ -1,7 +1,5 @@
 package com.breynisson.router.mcp;
 
-import com.breynisson.router.digitalme.DigitalMeStorage;
-import com.breynisson.router.digitalme.SearchResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpServerFeatures;
@@ -33,20 +31,24 @@ import java.util.stream.Stream;
 public class McpServerConfig {
 
     private static final Logger log = LoggerFactory.getLogger(McpServerConfig.class);
+    private static final int MAX_RESPONSE_CHARS = 900_000;
+    private static final int JSON_WRAPPER_OVERHEAD = 14;  // {"results":[]}
+    private static final int JSON_ENTRY_OVERHEAD = 35;    // per-entry: keys, quotes, colons, comma
+    private static final int SNIPPET_CHARS = 2_000;
 
     final Path mcpResourcesDir;
     private final Path normalizedBase;
-    private final DigitalMeStorage storage;
     private final ObjectMapper objectMapper;
+    private final EmbeddingIndex embeddingIndex;
 
     public McpServerConfig(
             @Value("${data.dir:.}") String dataDir,
-            DigitalMeStorage storage,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            EmbeddingIndex embeddingIndex) {
         this.mcpResourcesDir = Paths.get(dataDir, ResourceReceiver.MCP_RESOURCES_DIR);
         this.normalizedBase = mcpResourcesDir.normalize().toAbsolutePath();
-        this.storage = storage;
         this.objectMapper = objectMapper;
+        this.embeddingIndex = embeddingIndex;
     }
 
     @Bean
@@ -116,6 +118,9 @@ public class McpServerConfig {
             }
             try {
                 String content = Files.readString(requested, StandardCharsets.UTF_8);
+                if (content.length() > MAX_RESPONSE_CHARS) {
+                    content = content.substring(0, MAX_RESPONSE_CHARS) + "\n[truncated]";
+                }
                 return new McpSchema.ReadResourceResult(
                         List.of(new McpSchema.TextResourceContents(request.uri(), "text/plain", content)));
             } catch (NoSuchFileException e) {
@@ -125,6 +130,79 @@ public class McpServerConfig {
                 return errorReadResult("Error reading file: " + e.getMessage());
             }
         };
+    }
+
+    /** Returns top-20 semantically similar results; empty list if Ollama is unavailable. */
+    private List<Map<String, String>> semanticSearch(String query) {
+        return embeddingIndex.findSimilar(query, 20).stream()
+                .map(r -> {
+                    Path p = Path.of(r.filePath());
+                    String snip = "";
+                    try {
+                        snip = snippet(Files.readString(p, StandardCharsets.UTF_8));
+                    } catch (IOException e) {
+                        log.warn("Could not read {} for snippet", r.filePath());
+                    }
+                    return Map.of("source", r.sourceUrl(),
+                                  "name",   p.getFileName().toString(),
+                                  "snippet", snip);
+                })
+                .toList();
+    }
+
+    /** Case-insensitive OR keyword scan across all files in mcp-resources/. */
+    private List<Map<String, String>> keywordSearch(String query) {
+        String[] terms = query.toLowerCase().split("\\s+");
+        List<Map<String, String>> results = new ArrayList<>();
+        try (Stream<Path> walk = Files.walk(mcpResourcesDir)) {
+            walk.filter(Files::isRegularFile).forEach(file -> {
+                try {
+                    String raw = Files.readString(file, StandardCharsets.UTF_8);
+                    String lower = raw.toLowerCase();
+                    // OR logic: include file if any term matches
+                    for (String term : terms) {
+                        if (lower.contains(term)) {
+                            String source = ResourceReceiver.firstLine(raw);
+                            results.add(Map.of("source", source, "name", file.getFileName().toString(),
+                                               "snippet", snippet(raw)));
+                            break;
+                        }
+                    }
+                } catch (IOException e) {
+                    log.warn("Error reading {}", file, e);
+                }
+            });
+        } catch (IOException e) {
+            log.warn("Failed to walk {}", mcpResourcesDir, e);
+        }
+        return results;
+    }
+
+    private McpSchema.CallToolResult buildSearchResult(List<Map<String, String>> results) throws Exception {
+        int sizeEst = JSON_WRAPPER_OVERHEAD;
+        int limit = results.size();
+        for (int i = 0; i < results.size(); i++) {
+            Map<String, String> e = results.get(i);
+            sizeEst += e.get("source").length() + e.get("name").length()
+                     + e.getOrDefault("snippet", "").length() + JSON_ENTRY_OVERHEAD;
+            if (sizeEst > MAX_RESPONSE_CHARS) { limit = i; break; }
+        }
+        boolean truncated = limit < results.size();
+        Map<String, Object> payload = truncated
+                ? Map.of("results", results.subList(0, limit), "truncated", true, "total", results.size())
+                : Map.of("results", results);
+        return McpSchema.CallToolResult.builder()
+                .addTextContent(objectMapper.writeValueAsString(payload)).build();
+    }
+
+    /** Extracts content after the first line (source URL), normalised and capped at SNIPPET_CHARS. */
+    private static String snippet(String raw) {
+        int nl = raw.indexOf('\n');
+        String body = nl >= 0 ? raw.substring(nl + 1) : "";
+        // Cap before normalising so regex only runs on the portion we'll actually use
+        if (body.length() > SNIPPET_CHARS) body = body.substring(0, SNIPPET_CHARS);
+        return body.replace("\\n", " ").replace("\\t", " ").replace("\\r", " ")
+                   .replaceAll("\\s+", " ").strip();
     }
 
     private static McpSchema.ReadResourceResult errorReadResult(String message) {
@@ -155,12 +233,12 @@ public class McpServerConfig {
                         .addTextContent("Missing required argument: keywords").build();
             }
             try {
-                SearchResponse resp = storage.search(kw.toString());
-                String json = objectMapper.writeValueAsString(Map.of("results",
-                        resp.results.stream()
-                                .map(r -> Map.of("source", r.source, "name", r.name))
-                                .toList()));
-                return McpSchema.CallToolResult.builder().addTextContent(json).build();
+                // Semantic search via embeddings; falls back to keyword scan when Ollama is unavailable
+                List<Map<String, String>> results = semanticSearch(kw.toString());
+                if (results.isEmpty()) {
+                    results = keywordSearch(kw.toString());
+                }
+                return buildSearchResult(results);
             } catch (Exception e) {
                 log.warn("Search failed for keywords '{}'", kw, e);
                 return McpSchema.CallToolResult.builder().isError(true)

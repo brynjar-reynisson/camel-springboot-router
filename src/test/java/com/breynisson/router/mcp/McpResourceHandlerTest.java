@@ -1,6 +1,5 @@
 package com.breynisson.router.mcp;
 
-import com.breynisson.router.digitalme.TestDigitalMeStorage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -23,7 +22,8 @@ class McpResourceHandlerTest {
 
     @BeforeEach
     void setUp() {
-        config = new McpServerConfig(dataDir.toString(), new TestDigitalMeStorage(), new ObjectMapper());
+        EmbeddingIndex embeddingIndex = new EmbeddingIndex(text -> null, dataDir.toString());
+        config = new McpServerConfig(dataDir.toString(), new ObjectMapper(), embeddingIndex);
     }
 
     @Test
