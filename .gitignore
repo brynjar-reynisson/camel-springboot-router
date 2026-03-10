@@ -3,6 +3,8 @@ lucene-index/
 *.db
 *.db.original
 digital-me-dev/
-.claude/
+.claude/settings.local.json
+.claude/projects/
+.claude/todos.md
 .idea/
 frontend/node/

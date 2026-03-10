@@ -1,7 +1,6 @@
 package com.breynisson.router.jdbc;
 
 import com.breynisson.router.jdbc.model.TextEntry;
-import com.breynisson.router.jdbc.model.TextEntryMetadata;
 
 import java.time.Instant;
 import java.util.List;

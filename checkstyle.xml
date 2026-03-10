@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<module name="Checker">
+    <property name="severity" value="error"/>
+
+    <module name="TreeWalker">
+        <!-- Imports -->
+        <module name="UnusedImports"/>
+        <module name="IllegalImport">
+            <!-- com.sun.net.httpserver is allowed in tests (used to mock HTTP servers) -->
+            <property name="illegalPkgs" value="sun"/>
+            <property name="illegalClasses" value="com.sun.(?!net\.httpserver).*"/>
+        </module>
+
+        <!-- Common bugs -->
+        <module name="EmptyCatchBlock">
+            <property name="exceptionVariableName" value="ignored|expected"/>
+        </module>
+        <module name="StringLiteralEquality"/>
+        <module name="EqualsAvoidNull"/>
+        <module name="FallThrough"/>
+
+        <!-- Code clarity -->
+        <module name="OneStatementPerLine"/>
+        <module name="MultipleVariableDeclarations"/>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+    </module>
+</module>

@@ -9,7 +9,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -104,7 +103,9 @@ public class EmbeddingIndex {
 
     private static float cosine(float[] a, float[] b) {
         int len = Math.min(a.length, b.length);
-        double dot = 0, magA = 0, magB = 0;
+        double dot = 0;
+        double magA = 0;
+        double magB = 0;
         for (int i = 0; i < len; i++) {
             dot += a[i] * b[i];
             magA += a[i] * a[i];

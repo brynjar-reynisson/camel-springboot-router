@@ -185,7 +185,10 @@ public class McpServerConfig {
             Map<String, String> e = results.get(i);
             sizeEst += e.get("source").length() + e.get("name").length()
                      + e.getOrDefault("snippet", "").length() + JSON_ENTRY_OVERHEAD;
-            if (sizeEst > MAX_RESPONSE_CHARS) { limit = i; break; }
+            if (sizeEst > MAX_RESPONSE_CHARS) {
+                limit = i;
+                break;
+            }
         }
         boolean truncated = limit < results.size();
         Map<String, Object> payload = truncated
