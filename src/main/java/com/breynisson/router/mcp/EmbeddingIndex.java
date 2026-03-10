@@ -1,6 +1,7 @@
 package com.breynisson.router.mcp;
 
-import com.breynisson.router.jdbc.DatabaseAdapter;
+import com.breynisson.router.jdbc.McpEmbeddingDao;
+import com.breynisson.router.jdbc.model.McpEmbedding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,9 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -52,10 +51,7 @@ public class EmbeddingIndex {
     void indexAll() {
         try {
             if (!Files.isDirectory(mcpResourcesDir)) return;
-            // Load all already-indexed paths in one query instead of N individual SELECTs
-            Set<String> indexed = new HashSet<>(DatabaseAdapter.selectList(
-                    "SELECT FILE_PATH FROM MCP_EMBEDDING",
-                    DatabaseAdapter.RESULT_SET_STRING_TRANSFORM));
+            Set<String> indexed = McpEmbeddingDao.findAllFilePaths();
             try (Stream<Path> walk = Files.walk(mcpResourcesDir)) {
                 walk.filter(Files::isRegularFile).forEach(file -> {
                     if (!indexed.contains(file.toAbsolutePath().toString())) indexFile(file);
@@ -77,10 +73,8 @@ public class EmbeddingIndex {
             String toEmbed = raw.length() > MAX_EMBED_CHARS ? raw.substring(0, MAX_EMBED_CHARS) : raw;
             float[] embedding = embeddingClient.embed(toEmbed);
             if (embedding == null) return; // Ollama unavailable
-            String path = file.toAbsolutePath().toString();
-            DatabaseAdapter.runPreparedStatement(
-                    "INSERT OR REPLACE INTO MCP_EMBEDDING (FILE_PATH, SOURCE_URL, EMBEDDING, INDEXED_AT) VALUES (?, ?, ?, ?)",
-                    path, sourceUrl, toBytes(embedding), Instant.now().toString());
+            McpEmbeddingDao.upsert(new McpEmbedding(
+                    file.toAbsolutePath().toString(), sourceUrl, toBytes(embedding), Instant.now().toString()));
             log.debug("Indexed embedding for {}", file.getFileName());
         } catch (Exception e) {
             log.warn("Error indexing embedding for {}", file, e);
@@ -95,20 +89,8 @@ public class EmbeddingIndex {
         float[] queryEmbedding = embeddingClient.embed(query);
         if (queryEmbedding == null) return List.of();
         try {
-            List<ScoredResult> scored = DatabaseAdapter.selectList(
-                    "SELECT FILE_PATH, SOURCE_URL, EMBEDDING FROM MCP_EMBEDDING",
-                    rset -> {
-                        List<ScoredResult> list = new ArrayList<>();
-                        while (rset.next()) {
-                            String filePath = rset.getString(1);
-                            String sourceUrl = rset.getString(2);
-                            float[] embedding = fromBytes(rset.getBytes(3));
-                            float score = cosine(queryEmbedding, embedding);
-                            list.add(new ScoredResult(filePath, sourceUrl, score));
-                        }
-                        return list;
-                    });
-            return scored.stream()
+            return McpEmbeddingDao.findAll().stream()
+                    .map(e -> new ScoredResult(e.filePath, e.sourceUrl, cosine(queryEmbedding, fromBytes(e.embedding))))
                     .sorted(Comparator.comparingDouble(ScoredResult::score).reversed())
                     .limit(topK)
                     .toList();
