@@ -140,7 +140,7 @@ public class DatabaseAdapter {
             String[] sqlStatements = sqlScript.split(";");
             for(String sqlStatement : sqlStatements) {
                 sqlStatement = sqlStatement.trim();
-                if(sqlStatement.isEmpty() || sqlStatement.equalsIgnoreCase("END") || sqlStatement.startsWith("--")) {
+                if(sqlStatement.isEmpty() || "END".equalsIgnoreCase(sqlStatement) || sqlStatement.startsWith("--")) {
                     continue;
                 }
                 if(sqlStatement.toUpperCase().contains("BEGIN\r\n")) {

@@ -1,8 +1,5 @@
 package com.breynisson.router.jdbc;
 
-import com.breynisson.router.jdbc.model.TextEntryMetadata;
-
-import java.util.List;
 
 public class TextEntryMetadataDao {
 

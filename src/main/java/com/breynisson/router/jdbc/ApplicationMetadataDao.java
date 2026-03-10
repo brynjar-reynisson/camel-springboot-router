@@ -1,7 +1,5 @@
 package com.breynisson.router.jdbc;
 
-import javax.xml.crypto.Data;
-import java.util.List;
 
 public class ApplicationMetadataDao {
 
