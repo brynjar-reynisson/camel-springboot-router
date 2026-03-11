@@ -52,6 +52,11 @@ npm run dev
 
 Load the `chrome-extension/` folder as an unpacked extension in Chrome or Edge (`chrome://extensions` → Enable developer mode → Load unpacked). The extension will start sending page content to the local backend automatically.
 
+## YouTube caption extraction
+
+The source is copied from https://github.com/trldvix/youtube-transcript-api
+as it's not available on Maven Central. It is used to extract captions from YouTube videos when a URL is indexed.
+
 ## Project Structure
 
 ```

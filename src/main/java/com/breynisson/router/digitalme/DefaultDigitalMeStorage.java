@@ -1,5 +1,6 @@
 package com.breynisson.router.digitalme;
 
+import com.breynisson.router.extract.YouTubeCaptionExtractor;
 import com.breynisson.router.jdbc.TextEntryDao;
 import com.breynisson.router.lucene.LuceneIndex;
 import com.breynisson.router.mcp.EmbeddingIndex;
@@ -54,11 +55,15 @@ public class DefaultDigitalMeStorage implements DigitalMeStorage {
             log.info("addContent: {}", addContentRequest.getSource());
             String content = addContentRequest.getContent();
             if (addContentRequest.getSource().startsWith("http")) {
-                content = Jsoup.parse(content).text();
-                content = content.replace("\\n", " ");
-                content = content.replace("\\t", " ");
-                content = content.replace("\\r", " ");
-                content = content.replaceAll("\\s+", " ").strip();
+                if (addContentRequest.getSource().startsWith("https://www.youtube.com")) {
+                    content = new YouTubeCaptionExtractor().extractFromYouTubeUrl(addContentRequest.getSource());
+                } else {
+                    content = Jsoup.parse(content).text();
+                    content = content.replace("\\n", " ");
+                    content = content.replace("\\t", " ");
+                    content = content.replace("\\r", " ");
+                    content = content.replaceAll("\\s+", " ").strip();
+                }
                 addContentRequest.setContent(content);
             }
             Path written = resourceReceiver.addContent(addContentRequest);

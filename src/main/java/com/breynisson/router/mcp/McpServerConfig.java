@@ -77,6 +77,7 @@ public class McpServerConfig {
                         .tools(true)
                         .build())
                 .toolCall(buildSearchTool(), buildSearchHandler())
+                .toolCall(buildFetchTool(), buildFetchHandler())
                 .build();
         for (McpServerFeatures.SyncResourceSpecification spec : buildResourceSpecs()) {
             server.addResource(spec);
@@ -203,14 +204,60 @@ public class McpServerConfig {
         int nl = raw.indexOf('\n');
         String body = nl >= 0 ? raw.substring(nl + 1) : "";
         // Cap before normalising so regex only runs on the portion we'll actually use
-        if (body.length() > SNIPPET_CHARS) body = body.substring(0, SNIPPET_CHARS);
-        return body.replace("\\n", " ").replace("\\t", " ").replace("\\r", " ")
-                   .replaceAll("\\s+", " ").strip();
+        boolean truncated = body.length() > SNIPPET_CHARS;
+        if (truncated) body = body.substring(0, SNIPPET_CHARS);
+        String result = body.replace("\\n", " ").replace("\\t", " ").replace("\\r", " ")
+                            .replaceAll("\\s+", " ").strip();
+        return truncated ? result + " <truncated, use fetch tool>" : result;
     }
 
     private static McpSchema.ReadResourceResult errorReadResult(String message) {
         return new McpSchema.ReadResourceResult(
                 List.of(new McpSchema.TextResourceContents("", "text/plain", message)));
+    }
+
+    // Package-private for testability
+    McpSchema.Tool buildFetchTool() {
+        McpSchema.JsonSchema inputSchema = new McpSchema.JsonSchema(
+                "object",
+                Map.of("filename", Map.of("type", "string", "description", "Filename as returned by the search tool")),
+                List.of("filename"),
+                null, null, null);
+        return McpSchema.Tool.builder()
+                .name("fetch")
+                .description("Fetch the full content of a document by filename returned from the search tool")
+                .inputSchema(inputSchema)
+                .build();
+    }
+
+    // Package-private for testability
+    BiFunction<McpSyncServerExchange, McpSchema.CallToolRequest, McpSchema.CallToolResult> buildFetchHandler() {
+        return (exchange, request) -> {
+            Object fn = request.arguments() != null ? request.arguments().get("filename") : null;
+            if (fn == null || fn.toString().isBlank()) {
+                return McpSchema.CallToolResult.builder().isError(true)
+                        .addTextContent("Missing required argument: filename").build();
+            }
+            try (Stream<Path> walk = Files.walk(mcpResourcesDir)) {
+                Path file = walk.filter(Files::isRegularFile)
+                        .filter(p -> p.getFileName().toString().equals(fn.toString()))
+                        .findFirst()
+                        .orElse(null);
+                if (file == null) {
+                    return McpSchema.CallToolResult.builder().isError(true)
+                            .addTextContent("File not found: " + fn).build();
+                }
+                String content = Files.readString(file, StandardCharsets.UTF_8);
+                if (content.length() > MAX_RESPONSE_CHARS) {
+                    content = content.substring(0, MAX_RESPONSE_CHARS) + "\n[truncated]";
+                }
+                return McpSchema.CallToolResult.builder().addTextContent(content).build();
+            } catch (IOException e) {
+                log.warn("Fetch failed for filename '{}'", fn, e);
+                return McpSchema.CallToolResult.builder().isError(true)
+                        .addTextContent("Fetch failed: " + e.getMessage()).build();
+            }
+        };
     }
 
     // Package-private for testability
