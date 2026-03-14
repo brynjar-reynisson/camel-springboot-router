@@ -6,7 +6,9 @@ A personal search engine that indexes your local files and browsing history so y
 
 - **Indexes local files** — watches configured folders (e.g. `Documents`, Google Drive) for changes and indexes their text content using Apache Lucene.
 - **Indexes web pages you visit** — a Chrome extension sends the text of every page you browse to the backend, where it is indexed automatically.
-- **Full-text search** — a React web UI lets you search across all indexed content and shows paginated results linking back to the original file or URL.
+- **Full-text search** — keyword search across all indexed content using Apache Lucene.
+- **Semantic search** — meaning-based search powered by Ollama (`nomic-embed-text` embeddings), showing results ranked by similarity rather than exact keyword match.
+- **React UI** — displays both semantic and keyword results in separate sections with paginated links back to the original file or URL.
 
 ## Components
 
@@ -14,12 +16,14 @@ A personal search engine that indexes your local files and browsing history so y
 - REST API served on `http://localhost:8080`
 - Apache Camel routes (`routes/`) drive file watching and content ingestion
 - Lucene full-text index stored in `lucene-index/`
-- SQLite database (`digital-me.db`) tracks indexed entries
+- SQLite database (`digital-me.db`) tracks indexed entries and vector embeddings
+- Ollama integration for semantic search via `nomic-embed-text` (runs locally on port 11434)
 
 ### Frontend — React (Vite)
 - Source in `frontend/`
 - Built output served as static files by Spring Boot from `src/main/resources/static/`
-- Search box with paginated results (10 per page), each link opening in a new tab
+- Search box that queries both semantic and keyword endpoints in parallel
+- Results displayed in two labelled sections (Semantic / Keyword), paginated at 10 per page
 
 ### Chrome Extension
 - Source in `chrome-extension/`
@@ -30,6 +34,7 @@ A personal search engine that indexes your local files and browsing history so y
 - Java 19+
 - Maven 3.x
 - Node.js 20.19+
+- [Ollama](https://ollama.com) with the `nomic-embed-text` model (`ollama pull nomic-embed-text`) — required for semantic search. The app starts without it but semantic results will be empty.
 
 ## Running
 
