@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 public class ResourceReceiver {
 
     private static final Logger log = LoggerFactory.getLogger(ResourceReceiver.class);
-    static final String MCP_RESOURCES_DIR = "mcp-resources";
+    public static final String MCP_RESOURCES_DIR = "mcp-resources";
     private static final Pattern INVALID_CHARS = Pattern.compile("[\\\\/:*?\"<>|\\s]");
 
     private final Path mcpResourcesDir;

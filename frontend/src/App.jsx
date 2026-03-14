@@ -11,10 +11,52 @@ function buildHref(source) {
   return '/localFile?filePath=' + encodeURIComponent(normalized)
 }
 
+function ResultSection({ title, results }) {
+  const [page, setPage] = useState(0)
+  const totalPages = Math.ceil(results.length / PAGE_SIZE)
+  const pageResults = results.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
+
+  if (results.length === 0) return null
+
+  return (
+    <div className="result-section">
+      <h2 className="result-section-title">{title}</h2>
+      <p className="result-count">
+        {results.length} result{results.length !== 1 ? 's' : ''}
+        {totalPages > 1 && ` — page ${page + 1} of ${totalPages}`}
+      </p>
+      <ul>
+        {pageResults.map((item, i) => {
+          const label = item.name || item.source
+          const display = label.length > 90 ? label.slice(0, 90) + '...' : label
+          return (
+            <li key={i}>
+              <a href={buildHref(item.source)} target="_blank" rel="noopener noreferrer">
+                {display}
+              </a>
+            </li>
+          )
+        })}
+      </ul>
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button onClick={() => setPage(p => p - 1)} disabled={page === 0}>
+            ← Previous
+          </button>
+          <span>{page + 1} / {totalPages}</span>
+          <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>
+            Next →
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function App() {
   const [keywords, setKeywords] = useState('')
-  const [results, setResults] = useState([])
-  const [page, setPage] = useState(0)
+  const [semanticResults, setSemanticResults] = useState([])
+  const [keywordResults, setKeywordResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [error, setError] = useState(null)
@@ -25,11 +67,19 @@ function App() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/search?keywords=' + encodeURIComponent(trimmed))
-      if (!res.ok) throw new Error('Server returned ' + res.status)
-      const data = await res.json()
-      setResults(data.results || [])
-      setPage(0)
+      const encoded = encodeURIComponent(trimmed)
+      const [semanticRes, keywordRes] = await Promise.all([
+        fetch('/semanticSearch?keywords=' + encoded),
+        fetch('/search?keywords=' + encoded),
+      ])
+      if (!semanticRes.ok) throw new Error('Semantic search returned ' + semanticRes.status)
+      if (!keywordRes.ok) throw new Error('Keyword search returned ' + keywordRes.status)
+      const [semanticData, keywordData] = await Promise.all([
+        semanticRes.json(),
+        keywordRes.json(),
+      ])
+      setSemanticResults(semanticData.results || [])
+      setKeywordResults(keywordData.results || [])
       setSearched(true)
     } catch (e) {
       setError(e.message)
@@ -42,8 +92,7 @@ function App() {
     if (e.key === 'Enter') doSearch()
   }
 
-  const totalPages = Math.ceil(results.length / PAGE_SIZE)
-  const pageResults = results.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
+  const totalResults = semanticResults.length + keywordResults.length
 
   return (
     <div className="app">
@@ -65,42 +114,12 @@ function App() {
 
       {searched && !loading && (
         <div className="results">
-          {results.length === 0 ? (
+          {totalResults === 0 ? (
             <p className="no-results">No results for <strong>{keywords}</strong>.</p>
           ) : (
             <>
-              <p className="result-count">
-                {results.length} result{results.length !== 1 ? 's' : ''}
-                {totalPages > 1 && ` — page ${page + 1} of ${totalPages}`}
-              </p>
-              <ul>
-                {pageResults.map((item, i) => {
-                  const label = item.name || item.source
-                  const display = label.length > 90 ? label.slice(0, 90) + '...' : label
-                  return (
-                    <li key={i}>
-                      <a
-                        href={buildHref(item.source)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {display}
-                      </a>
-                    </li>
-                  )
-                })}
-              </ul>
-              {totalPages > 1 && (
-                <div className="pagination">
-                  <button onClick={() => setPage(p => p - 1)} disabled={page === 0}>
-                    ← Previous
-                  </button>
-                  <span>{page + 1} / {totalPages}</span>
-                  <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>
-                    Next →
-                  </button>
-                </div>
-              )}
+              <ResultSection title="Semantic Search Results" results={semanticResults} />
+              <ResultSection title="Keyword Search Results" results={keywordResults} />
             </>
           )}
         </div>

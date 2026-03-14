@@ -18,7 +18,7 @@ class IndexPageTest {
     @BeforeEach
     void setUp() {
         storage = new TestDigitalMeStorage();
-        indexPage = new IndexPage(storage);
+        indexPage = new IndexPage(storage, null);
     }
 
     @Test
@@ -27,15 +27,15 @@ class IndexPageTest {
 
         SearchResponse response = indexPage.search("hello");
 
-        assertEquals(1, response.results.size());
-        assertEquals("http://example.com", response.results.iterator().next().source);
+        assertEquals(1, response.results().size());
+        assertEquals("http://example.com", response.results().iterator().next().source());
     }
 
     @Test
     void searchReturnsEmptyWhenNoMatch() {
         SearchResponse response = indexPage.search("nonexistent");
 
-        assertTrue(response.results.isEmpty());
+        assertTrue(response.results().isEmpty());
     }
 
     @Test
@@ -43,7 +43,7 @@ class IndexPageTest {
         AddContentResponse response = indexPage.addContent(request("http://example.com", "Example", "some content"));
 
         assertTrue(response.isSuccess());
-        assertEquals(1, indexPage.search("some content").results.size());
+        assertEquals(1, indexPage.search("some content").results().size());
     }
 
     private static AddContentRequest request(String source, String name, String content) {

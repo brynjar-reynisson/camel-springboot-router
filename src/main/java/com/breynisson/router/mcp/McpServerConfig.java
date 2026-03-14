@@ -1,5 +1,6 @@
 package com.breynisson.router.mcp;
 
+import com.breynisson.router.digitalme.SemanticSearch;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpServerFeatures;
@@ -34,21 +35,20 @@ public class McpServerConfig {
     private static final int MAX_RESPONSE_CHARS = 900_000;
     private static final int JSON_WRAPPER_OVERHEAD = 14;  // {"results":[]}
     private static final int JSON_ENTRY_OVERHEAD = 35;    // per-entry: keys, quotes, colons, comma
-    private static final int SNIPPET_CHARS = 2_000;
 
     final Path mcpResourcesDir;
     private final Path normalizedBase;
     private final ObjectMapper objectMapper;
-    private final EmbeddingIndex embeddingIndex;
+    private final SemanticSearch semanticSearch;
 
     public McpServerConfig(
             @Value("${data.dir:.}") String dataDir,
             ObjectMapper objectMapper,
-            EmbeddingIndex embeddingIndex) {
+            SemanticSearch semanticSearch) {
         this.mcpResourcesDir = Paths.get(dataDir, ResourceReceiver.MCP_RESOURCES_DIR);
         this.normalizedBase = mcpResourcesDir.normalize().toAbsolutePath();
         this.objectMapper = objectMapper;
-        this.embeddingIndex = embeddingIndex;
+        this.semanticSearch = semanticSearch;
     }
 
     @Bean
@@ -133,24 +133,6 @@ public class McpServerConfig {
         };
     }
 
-    /** Returns top-20 semantically similar results; empty list if Ollama is unavailable. */
-    private List<Map<String, String>> semanticSearch(String query) {
-        return embeddingIndex.findSimilar(query, 20).stream()
-                .map(r -> {
-                    Path p = Path.of(r.filePath());
-                    String snip = "";
-                    try {
-                        snip = snippet(Files.readString(p, StandardCharsets.UTF_8));
-                    } catch (IOException e) {
-                        log.warn("Could not read {} for snippet", r.filePath());
-                    }
-                    return Map.of("source", r.sourceUrl(),
-                                  "name",   p.getFileName().toString(),
-                                  "snippet", snip);
-                })
-                .toList();
-    }
-
     /** Case-insensitive OR keyword scan across all files in mcp-resources/. */
     private List<Map<String, String>> keywordSearch(String query) {
         String[] terms = query.toLowerCase().split("\\s+");
@@ -164,8 +146,10 @@ public class McpServerConfig {
                     for (String term : terms) {
                         if (lower.contains(term)) {
                             String source = ResourceReceiver.firstLine(raw);
-                            results.add(Map.of("source", source, "name", file.getFileName().toString(),
-                                               "snippet", snippet(raw)));
+                            if (!SemanticSearch.isExcluded(source)) {
+                                results.add(Map.of("source", source, "name", file.getFileName().toString(),
+                                                   "snippet", SemanticSearch.snippet(raw)));
+                            }
                             break;
                         }
                     }
@@ -197,18 +181,6 @@ public class McpServerConfig {
                 : Map.of("results", results);
         return McpSchema.CallToolResult.builder()
                 .addTextContent(objectMapper.writeValueAsString(payload)).build();
-    }
-
-    /** Extracts content after the first line (source URL), normalised and capped at SNIPPET_CHARS. */
-    private static String snippet(String raw) {
-        int nl = raw.indexOf('\n');
-        String body = nl >= 0 ? raw.substring(nl + 1) : "";
-        // Cap before normalising so regex only runs on the portion we'll actually use
-        boolean truncated = body.length() > SNIPPET_CHARS;
-        if (truncated) body = body.substring(0, SNIPPET_CHARS);
-        String result = body.replace("\\n", " ").replace("\\t", " ").replace("\\r", " ")
-                            .replaceAll("\\s+", " ").strip();
-        return truncated ? result + " <truncated, use fetch tool>" : result;
     }
 
     private static McpSchema.ReadResourceResult errorReadResult(String message) {
@@ -284,7 +256,7 @@ public class McpServerConfig {
             }
             try {
                 // Semantic search via embeddings; falls back to keyword scan when Ollama is unavailable
-                List<Map<String, String>> results = semanticSearch(kw.toString());
+                List<Map<String, String>> results = semanticSearch.search(kw.toString());
                 if (results.isEmpty()) {
                     results = keywordSearch(kw.toString());
                 }

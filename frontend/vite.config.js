@@ -11,6 +11,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/search': 'http://localhost:8080',
+      '/semanticSearch': 'http://localhost:8080',
       '/localFile': 'http://localhost:8080',
       '/addContent': 'http://localhost:8080',
     },
