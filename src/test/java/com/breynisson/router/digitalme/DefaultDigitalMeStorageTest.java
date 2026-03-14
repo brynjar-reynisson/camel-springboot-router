@@ -59,8 +59,8 @@ class DefaultDigitalMeStorageTest {
 
         assertTrue(response.isSuccess());
         SearchResponse results = storage.search("searchable");
-        assertEquals(1, results.results.size());
-        assertEquals("/local/file.txt", results.results.iterator().next().source);
+        assertEquals(1, results.results().size());
+        assertEquals("/local/file.txt", results.results().iterator().next().source());
         assertFalse(TextEntryDao.findByName("/local/file.txt").isEmpty());
 
         cleanupDb("/local/file.txt");
@@ -74,10 +74,10 @@ class DefaultDigitalMeStorageTest {
         storage.addContent(req);
 
         SearchResponse results = storage.search("hello");
-        assertEquals(1, results.results.size());
+        assertEquals(1, results.results().size());
         // Verify plain-text was indexed, not raw HTML tags
         SearchResponse noHtmlTag = storage.search("body");
-        assertTrue(noHtmlTag.results.isEmpty());
+        assertTrue(noHtmlTag.results().isEmpty());
 
         cleanupDb("http://example.com");
     }
@@ -94,7 +94,7 @@ class DefaultDigitalMeStorageTest {
         var entries = TextEntryDao.findByName("http://example.com");
         assertEquals(1, entries.size());
         assertEquals(uuidAfterFirst, entries.get(0).uuid);
-        assertEquals(1, storage.search("second").results.size());
+        assertEquals(1, storage.search("second").results().size());
 
         cleanupDb("http://example.com");
     }
@@ -120,9 +120,9 @@ class DefaultDigitalMeStorageTest {
 
         SearchResponse response = storage.search("golden shoes");
 
-        assertEquals(3, response.results.size());
+        assertEquals(3, response.results().size());
         // Most relevant (both terms, higher frequency) should come first
-        assertEquals("http://c.com", response.results.iterator().next().source);
+        assertEquals("http://c.com", response.results().iterator().next().source());
 
         cleanupDb("http://a.com");
         cleanupDb("http://b.com");

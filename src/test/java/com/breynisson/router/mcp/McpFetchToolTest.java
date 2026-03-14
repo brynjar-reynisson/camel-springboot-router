@@ -1,5 +1,6 @@
 package com.breynisson.router.mcp;
 
+import com.breynisson.router.digitalme.SemanticSearch;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +24,8 @@ class McpFetchToolTest {
     @BeforeEach
     void setUp() {
         EmbeddingIndex embeddingIndex = new EmbeddingIndex(text -> null, dataDir.toString());
-        config = new McpServerConfig(dataDir.toString(), new ObjectMapper(), embeddingIndex);
+        SemanticSearch semanticSearch = new SemanticSearch(embeddingIndex, dataDir.toString());
+        config = new McpServerConfig(dataDir.toString(), new ObjectMapper(), semanticSearch);
     }
 
     @Test
