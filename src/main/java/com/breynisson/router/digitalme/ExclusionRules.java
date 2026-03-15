@@ -17,6 +17,7 @@ public final class ExclusionRules {
                 || sourceUrl.contains(".google.")
                 || sourceUrl.contains("islandsbanki")
                 || endsWithDomain(sourceUrl, "facebook.com")
-                || endsWithDomain(sourceUrl, "quora.com");
+                || endsWithDomain(sourceUrl, "quora.com")
+                || endsWithDomain(sourceUrl, "meta.com/is");
     }
 }

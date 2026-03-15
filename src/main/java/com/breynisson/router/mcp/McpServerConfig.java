@@ -1,5 +1,6 @@
 package com.breynisson.router.mcp;
 
+import com.breynisson.router.digitalme.ExclusionRules;
 import com.breynisson.router.digitalme.SemanticSearch;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.modelcontextprotocol.server.McpServer;
@@ -146,7 +147,7 @@ public class McpServerConfig {
                     for (String term : terms) {
                         if (lower.contains(term)) {
                             String source = ResourceReceiver.firstLine(raw);
-                            if (!SemanticSearch.isExcluded(source)) {
+                            if (!ExclusionRules.isExcluded(source)) {
                                 results.add(Map.of("source", source, "name", file.getFileName().toString(),
                                                    "snippet", SemanticSearch.snippet(raw)));
                             }

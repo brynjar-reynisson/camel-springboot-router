@@ -2,6 +2,7 @@ package com.breynisson.router.digitalme;
 
 import com.breynisson.router.mcp.EmbeddingIndex;
 import com.breynisson.router.mcp.ResourceReceiver;
+import com.breynisson.router.mcp.SummarizeClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,24 +23,22 @@ public class SemanticSearch {
     private static final int SNIPPET_CHARS = 2_000;
 
     private final EmbeddingIndex embeddingIndex;
+    private final SummarizeClient summarizeClient;
     private final Path mcpResourcesDir;
 
-    public SemanticSearch(EmbeddingIndex embeddingIndex, @Value("${data.dir:.}") String dataDir) {
+    public SemanticSearch(
+            EmbeddingIndex embeddingIndex,
+            SummarizeClient summarizeClient,
+            @Value("${data.dir:.}") String dataDir) {
         this.embeddingIndex = embeddingIndex;
+        this.summarizeClient = summarizeClient;
         this.mcpResourcesDir = Paths.get(dataDir, ResourceReceiver.MCP_RESOURCES_DIR);
     }
 
-    public static boolean isExcluded(String sourceUrl) {
-        return sourceUrl.contains("localhost:3001")
-                || sourceUrl.contains("localhost:8080")
-                || sourceUrl.contains("//google.")
-                || sourceUrl.contains(".google.");
-    }
-
-    /** Returns top-20 semantically similar results; empty list if Ollama is unavailable. */
+    /** Returns top-10 semantically similar results; empty list if Ollama is unavailable. */
     public List<Map<String, String>> search(String query) {
-        return embeddingIndex.findSimilar(query, 20).stream()
-                .filter(r -> !isExcluded(r.sourceUrl()))
+        return embeddingIndex.findSimilar(query, 10).stream()
+                .filter(r -> !ExclusionRules.isExcluded(r.sourceUrl()))
                 .map(r -> {
                     Path p = Path.of(r.filePath());
                     String snip = "";
@@ -53,6 +52,11 @@ public class SemanticSearch {
                                   "snippet", snip);
                 })
                 .toList();
+    }
+
+    /** Summarizes the given text; returns null if Ollama is unavailable. */
+    public String summarize(String text) {
+        return summarizeClient.summarize(text);
     }
 
     /** Extracts content after the first line (source URL), normalised and capped at SNIPPET_CHARS. */

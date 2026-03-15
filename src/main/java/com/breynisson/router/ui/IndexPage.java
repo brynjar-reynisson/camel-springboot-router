@@ -41,9 +41,18 @@ public class IndexPage {
     @GetMapping("/semanticSearch")
     public SearchResponse semanticSearch(@RequestParam String keywords) {
         LinkedHashSet<SearchResult> results = semanticSearch.search(keywords).stream()
-                .map(r -> new SearchResult(r.get("source"), r.get("name")))
+                .map(r -> new SearchResult(r.get("source"), r.get("name"), r.get("snippet")))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         return new SearchResponse(results);
+    }
+
+    record SummarizeRequest(String text) {}
+    record SummarizeResponse(String summary) {}
+
+    @PostMapping(value = "/summarize", consumes = "application/json", produces = "application/json")
+    public SummarizeResponse summarize(@RequestBody SummarizeRequest request) {
+        String summary = semanticSearch.summarize(request.text());
+        return new SummarizeResponse(summary != null ? summary : "");
     }
 
     @GetMapping("/localFile")

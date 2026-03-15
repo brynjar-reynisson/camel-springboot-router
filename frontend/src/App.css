@@ -16,6 +16,21 @@ body {
   padding: 0 16px;
 }
 
+.app--centered {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(800px, calc(100% - 32px));
+}
+
+.app-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+}
+
 .search-bar {
   display: flex;
   gap: 8px;
@@ -120,6 +135,18 @@ body {
 
 .result-section {
   margin-bottom: 20px;
+}
+
+.result-summary {
+  font-size: 0.875rem;
+  color: #444;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.result-summary--loading {
+  color: #999;
+  font-style: italic;
 }
 
 .result-section-title {

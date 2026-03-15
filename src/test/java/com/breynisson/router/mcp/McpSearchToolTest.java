@@ -23,7 +23,7 @@ class McpSearchToolTest {
     @BeforeEach
     void setUp() {
         EmbeddingIndex embeddingIndex = new EmbeddingIndex(text -> null, dataDir.toString());
-        SemanticSearch semanticSearch = new SemanticSearch(embeddingIndex, dataDir.toString());
+        SemanticSearch semanticSearch = new SemanticSearch(embeddingIndex, text -> null, dataDir.toString());
         config = new McpServerConfig(dataDir.toString(), new ObjectMapper(), semanticSearch);
     }
 

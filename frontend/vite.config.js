@@ -14,6 +14,7 @@ export default defineConfig({
       '/semanticSearch': 'http://localhost:8080',
       '/localFile': 'http://localhost:8080',
       '/addContent': 'http://localhost:8080',
+      '/summarize': 'http://localhost:8080',
     },
   },
 })

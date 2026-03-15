@@ -6,8 +6,8 @@ A personal search engine that indexes your local files and browsing history so y
 
 - **Indexes local files** — watches configured folders (e.g. `Documents`, Google Drive) for changes and indexes their text content using Apache Lucene.
 - **Indexes web pages you visit** — a Chrome extension sends the text of every page you browse to the backend, where it is indexed automatically.
-- **Full-text search** — keyword search across all indexed content using Apache Lucene.
 - **Semantic search** — meaning-based search powered by Ollama (`nomic-embed-text` embeddings), showing results ranked by similarity rather than exact keyword match.
+- **Full-text search** — keyword search across all indexed content using Apache Lucene.
 - **React UI** — displays both semantic and keyword results in separate sections with paginated links back to the original file or URL.
 
 ## Components
@@ -15,9 +15,9 @@ A personal search engine that indexes your local files and browsing history so y
 ### Backend — Spring Boot + Apache Camel
 - REST API served on `http://localhost:8080`
 - Apache Camel routes (`routes/`) drive file watching and content ingestion
+- Ollama integration for semantic search via `nomic-embed-text` (runs locally on port 11434)
 - Lucene full-text index stored in `lucene-index/`
 - SQLite database (`digital-me.db`) tracks indexed entries and vector embeddings
-- Ollama integration for semantic search via `nomic-embed-text` (runs locally on port 11434)
 
 ### Frontend — React (Vite)
 - Source in `frontend/`

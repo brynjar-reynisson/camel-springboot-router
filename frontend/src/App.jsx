@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 const PAGE_SIZE = 10
+const SEMANTIC_PAGE_SIZE = 5
 
 function buildHref(source) {
   if (source.startsWith('http')) {
@@ -11,10 +12,10 @@ function buildHref(source) {
   return '/localFile?filePath=' + encodeURIComponent(normalized)
 }
 
-function ResultSection({ title, results }) {
+function ResultSection({ title, results, topSummary, pageSize = PAGE_SIZE }) {
   const [page, setPage] = useState(0)
-  const totalPages = Math.ceil(results.length / PAGE_SIZE)
-  const pageResults = results.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
+  const totalPages = Math.ceil(results.length / pageSize)
+  const pageResults = results.slice(page * pageSize, page * pageSize + pageSize)
 
   if (results.length === 0) return null
 
@@ -29,11 +30,18 @@ function ResultSection({ title, results }) {
         {pageResults.map((item, i) => {
           const label = item.name || item.source
           const display = label.length > 90 ? label.slice(0, 90) + '...' : label
+          const isTop = i === 0 && page === 0 && topSummary !== undefined
           return (
             <li key={i}>
               <a href={buildHref(item.source)} target="_blank" rel="noopener noreferrer">
                 {display}
               </a>
+              {isTop && topSummary === null && (
+                <p className="result-summary result-summary--loading">Summarizing…</p>
+              )}
+              {isTop && topSummary && (
+                <p className="result-summary">{topSummary}</p>
+              )}
             </li>
           )
         })}
@@ -60,12 +68,14 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [error, setError] = useState(null)
+  const [topSummary, setTopSummary] = useState(undefined)
 
   async function doSearch() {
     const trimmed = keywords.trim()
     if (!trimmed) return
     setLoading(true)
     setError(null)
+    setTopSummary(undefined)
     try {
       const encoded = encodeURIComponent(trimmed)
       const [semanticRes, keywordRes] = await Promise.all([
@@ -78,9 +88,22 @@ function App() {
         semanticRes.json(),
         keywordRes.json(),
       ])
-      setSemanticResults(semanticData.results || [])
+      const semantic = semanticData.results || []
+      setSemanticResults(semantic)
       setKeywordResults(keywordData.results || [])
       setSearched(true)
+
+      if (semantic.length > 0 && semantic[0].snippet) {
+        setTopSummary(null)
+        fetch('/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: semantic[0].snippet }),
+        })
+          .then(r => r.json())
+          .then(d => setTopSummary(d.summary || ''))
+          .catch(() => setTopSummary(''))
+      }
     } catch (e) {
       setError(e.message)
     } finally {
@@ -95,7 +118,8 @@ function App() {
   const totalResults = semanticResults.length + keywordResults.length
 
   return (
-    <div className="app">
+    <div className={searched ? 'app' : 'app app--centered'}>
+      <h1 className="app-title">Digital Me</h1>
       <div className="search-bar">
         <input
           type="search"
@@ -118,7 +142,7 @@ function App() {
             <p className="no-results">No results for <strong>{keywords}</strong>.</p>
           ) : (
             <>
-              <ResultSection title="Semantic Search Results" results={semanticResults} />
+              <ResultSection title="Semantic Search Results" results={semanticResults} topSummary={topSummary} pageSize={SEMANTIC_PAGE_SIZE} />
               <ResultSection title="Keyword Search Results" results={keywordResults} />
             </>
           )}
