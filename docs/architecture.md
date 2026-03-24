@@ -6,6 +6,8 @@
 |---|---|---|
 | `GET` | `/` | Redirects to `/index.html` |
 | `GET` | `/search?keywords=...` | Lucene full-text search; returns `{ results: [{source, name}] }` |
+| `GET` | `/semanticSearch?keywords=...` | Semantic search via Ollama embeddings; returns `{ results: [{source, name, snippet}] }` |
+| `POST` | `/summarize` | On-demand text summarization; body: `{ text }`; returns `{ summary }` |
 | `GET` | `/localFile?filePath=...` | Reads a local file and returns HTML-escaped content |
 | `POST` | `/addContent` | Indexes content; body: `{ source, name, content }` |
 
@@ -78,6 +80,30 @@ The app must be run with `digital-me-dev/` as the working directory so relative 
 - `findAll()` — returns list of `McpEmbedding` (reads FILE_PATH, SOURCE_URL, EMBEDDING columns only)
 - `findAllFilePaths()` — returns `Set<String>` of already-indexed paths (used by `indexAll()` to skip re-indexing)
 
+### `SemanticSearch`
+- Spring `@Component` combining `EmbeddingIndex` + `SummarizeClient`
+- `search(query)`: calls `EmbeddingIndex.findSimilar(query, 10)`, filters via `ExclusionRules`, returns list of `{source, name, snippet}` maps
+- `summarize(text)`: delegates to `SummarizeClient`; returns null when Ollama is unavailable
+- `snippet(raw)` (static): strips first line (source URL), normalises whitespace, caps at 2000 chars; appends `<truncated, use fetch tool>` if truncated
+
+### `ExclusionRules`
+- Static utility; `isExcluded(url)` returns true for: null, localhost:3001, localhost:8080, google domains, islandsbanki, facebook.com, quora.com, meta.com/is
+- Applied in both `SemanticSearch.search()` and `McpServerConfig` keyword search to filter noise
+
+### `SummarizeClient` (functional interface)
+- Single method: `String summarize(String text)` — returns `null` when Ollama is unavailable
+- Used as a lambda in tests; `OllamaSummarizeClient` is the production implementation
+
+### `OllamaSummarizeClient`
+- Posts to `http://localhost:11434/api/generate` with model configurable via `ollama.summarize.model` (default: `llama3.2`)
+- Sends a "Summarize in 2-3 sentences" prompt; 120-second timeout
+- Returns `null` on HTTP error or connection failure
+
+### `YouTubeCaptionExtractor`
+- Located in `extract/` package
+- `extractFromYouTubeUrl(url)`: parses `v=` query param, calls `extract(videoId)`
+- `extract(videoId)`: uses `youtube-transcript-api` library; returns timed transcript lines as `[start_sec] text\n`
+
 ---
 
 ## Database schema
@@ -97,7 +123,11 @@ MCP_EMBEDDING (FILE_PATH PK, SOURCE_URL, EMBEDDING BLOB, INDEXED_AT)  -- vector 
 ## Frontend (`frontend/`)
 
 - Single `App.jsx` component — no router
-- Pagination: 10 results per page (`PAGE_SIZE = 10`)
+- Two result sections displayed side-by-side after search:
+  - **Semantic Search Results**: calls `/semanticSearch`; 5 results per page (`SEMANTIC_PAGE_SIZE = 5`)
+  - **Keyword Search Results**: calls `/search`; 10 results per page (`PAGE_SIZE = 10`)
+- Both searches run in parallel via `Promise.all`
+- **On-demand summarization**: after semantic search, the top result's snippet is POSTed to `/summarize`; the summary is displayed below that result while loading ("Summarizing…")
 - Local file results: linked to `/localFile?filePath=<encoded-path>`
 - Web results: linked directly to the URL
 - Labels truncated to 90 characters in the result list

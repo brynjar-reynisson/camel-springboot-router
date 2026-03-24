@@ -61,14 +61,24 @@ camel-springboot-router/
 │   ├── lucene/
 │   │   └── LuceneIndex.java         Static Lucene index helpers
 │   ├── mcp/
-│   │   ├── McpServerConfig.java     MCP server (resources + search tool)
+│   │   ├── McpServerConfig.java     MCP server (resources + search + fetch tools)
 │   │   ├── ResourceReceiver.java    Writes MCP client content to mcp-resources/
 │   │   ├── EmbeddingClient.java     Functional interface: float[] embed(String text)
 │   │   ├── OllamaEmbeddingClient.java  HTTP client for Ollama /api/embeddings
-│   │   └── EmbeddingIndex.java      SQLite-backed vector store; cosine similarity search
+│   │   ├── EmbeddingIndex.java      SQLite-backed vector store; cosine similarity search
+│   │   ├── SummarizeClient.java     Functional interface: String summarize(String text)
+│   │   └── OllamaSummarizeClient.java  HTTP client for Ollama /api/generate (llama3.2)
 │   ├── digitalme/
 │   │   ├── DigitalMeStorage.java    Abstraction over Lucene index + SQLite
-│   │   └── DefaultDigitalMeStorage.java
+│   │   ├── DefaultDigitalMeStorage.java
+│   │   ├── SemanticSearch.java      EmbeddingIndex + SummarizeClient; search + snippet + summarize
+│   │   ├── ExclusionRules.java      Filters noisy sources from search results
+│   │   ├── AddContentRequest.java   DTO for /addContent body
+│   │   ├── AddContentResponse.java  DTO for /addContent response
+│   │   ├── SearchResponse.java      DTO for /search and /semanticSearch response
+│   │   └── SearchResult.java        DTO for a single search result
+│   ├── extract/
+│   │   └── YouTubeCaptionExtractor.java  Extracts timed captions from YouTube video IDs or URLs
 │   └── ui/
 │       └── IndexPage.java           REST controller (@RestController)
 ├── src/main/resources/
@@ -98,7 +108,7 @@ The `frontend-maven-plugin` runs `npm install` + `npm run build` automatically a
 ```bash
 cd frontend && npm run dev
 ```
-Proxies `/search`, `/localFile`, `/addContent` to `localhost:8080`. The backend must be running separately.
+Proxies `/search`, `/semanticSearch`, `/summarize`, `/localFile`, `/addContent` to `localhost:8080`. The backend must be running separately.
 
 ### Run tests
 ```bash
