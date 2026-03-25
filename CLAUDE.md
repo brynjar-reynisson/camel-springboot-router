@@ -21,7 +21,7 @@ Personal search engine that indexes local `.txt` files and web pages visited via
 | Semantic search | Ollama local AI (`nomic-embed-text` model, 2048-token context) |
 | Database | SQLite via `sqlite-jdbc` |
 | HTML parsing | Jsoup |
-| Frontend | React 19, Vite 7 |
+| Frontend | React 19, Vite 7, TypeScript 5 (strict) |
 | Browser extension | Chrome/Edge Manifest V3 |
 
 ---

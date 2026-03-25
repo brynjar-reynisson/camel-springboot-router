@@ -111,8 +111,8 @@ public class EmbeddingIndex {
             magA += a[i] * a[i];
             magB += b[i] * b[i];
         }
-        double denom = Math.sqrt(magA) * Math.sqrt(magB);
-        return denom == 0 ? 0f : (float) (dot / denom);
+        double denominator = Math.sqrt(magA) * Math.sqrt(magB);
+        return denominator == 0 ? 0f : (float) (dot / denominator);
     }
 
     private static byte[] toBytes(float[] floats) {
