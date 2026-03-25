@@ -42,7 +42,12 @@ Option A — rename and type everything at once. The frontend has exactly two so
 ## Section 2: Source File Migration
 
 ### `main.jsx` → `main.tsx`
-- Add non-null assertion on `getElementById('root')`: `document.getElementById('root') as HTMLElement`
+- Add null guard on `getElementById('root')` — throws a clear error if the element is missing rather than casting unsafely:
+  ```ts
+  const root = document.getElementById('root')
+  if (!root) throw new Error('Root element #root not found in DOM')
+  createRoot(root).render(...)
+  ```
 - Update import: `from './App.jsx'` → `from './App'` (TypeScript with `moduleResolution: bundler` rejects explicit `.jsx` extensions pointing to `.tsx` files)
 
 ### `App.jsx` → `App.tsx`
@@ -100,7 +105,7 @@ Event handler types:
 | `frontend/vite.config.js` | Rename to `vite.config.ts` |
 | `frontend/eslint.config.js` | Add TS parser + rules, extend file patterns |
 | `frontend/index.html` | Update script reference from `/src/main.jsx` to `/src/main.tsx` |
-| `frontend/src/main.jsx` | Rename to `main.tsx`, add non-null assertion, update App import |
+| `frontend/src/main.jsx` | Rename to `main.tsx`, add null guard + throw, update App import |
 | `frontend/src/App.jsx` | Rename to `App.tsx`, add all type annotations |
 
 ---
