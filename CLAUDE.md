@@ -44,7 +44,7 @@ camel-springboot-router/
 ├── docs/                     Detailed documentation (imported below)
 ├── frontend/                 React + Vite search UI
 │   └── src/
-│       └── App.jsx           Single-page search UI
+│       └── App.tsx           Single-page search UI
 ├── src/main/java/com/breynisson/router/
 │   ├── SpringBootApplication.java   Entry point; calls DatabaseAdapter.init()
 │   ├── AppConfig.java               Spring @Configuration; registers all beans
