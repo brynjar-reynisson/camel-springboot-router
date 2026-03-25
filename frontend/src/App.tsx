@@ -17,6 +17,14 @@ interface ResultSectionProps {
   pageSize?: number
 }
 
+interface SearchResponse {
+  results: SearchResult[]
+}
+
+interface SummarizeResponse {
+  summary: string
+}
+
 function buildHref(source: string): string {
   if (source.startsWith('http')) {
     return source
@@ -45,7 +53,7 @@ function ResultSection({ title, results, topSummary, pageSize = PAGE_SIZE }: Res
           const display = label.length > 90 ? label.slice(0, 90) + '...' : label
           const isTop = i === 0 && page === 0 && topSummary !== undefined
           return (
-            <li key={i}>
+            <li key={item.source}>
               <a href={buildHref(item.source)} target="_blank" rel="noopener noreferrer">
                 {display}
               </a>
@@ -98,8 +106,8 @@ function App() {
       if (!semanticRes.ok) throw new Error('Semantic search returned ' + semanticRes.status)
       if (!keywordRes.ok) throw new Error('Keyword search returned ' + keywordRes.status)
       const [semanticData, keywordData] = await Promise.all([
-        semanticRes.json(),
-        keywordRes.json(),
+        semanticRes.json() as Promise<SearchResponse>,
+        keywordRes.json() as Promise<SearchResponse>,
       ])
       const semantic: SearchResult[] = semanticData.results || []
       setSemanticResults(semantic)
@@ -113,7 +121,7 @@ function App() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: semantic[0].snippet }),
         })
-          .then(r => r.json())
+          .then(r => r.json() as Promise<SummarizeResponse>)
           .then(d => setTopSummary(d.summary || ''))
           .catch(() => setTopSummary(''))
       }
