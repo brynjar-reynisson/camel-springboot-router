@@ -26,11 +26,13 @@ Option A — rename and type everything at once. The frontend has exactly two so
 - Add `tsconfig.json` at `frontend/` root:
   - `"strict": true`
   - `"jsx": "react-jsx"`
-  - `"target": "ES2020"`
+  - `"target": "ES2021"` — upgraded from ES2020 to include native `replaceAll` support (see commit 53e355b)
   - `"moduleResolution": "bundler"` (Vite-compatible)
   - `"module": "ESNext"`
-  - `"lib": ["ES2020", "DOM", "DOM.Iterable"]`
+  - `"lib": ["ES2021", "DOM", "DOM.Iterable"]`
   - `"skipLibCheck": true`
+  - `"isolatedModules": true` (required: Vite uses esbuild per-file transpilation; this surfaces errors esbuild would silently mishandle)
+  - `"noEmit": true` (tsc is used as type-checker only; Vite/esbuild handles emit)
   - `"include": ["src"]`
 - Rename `vite.config.js` → `vite.config.ts` (no content changes required)
 - Update `eslint.config.js` to cover `.ts`/`.tsx` files and add `@typescript-eslint` parser + recommended rules
@@ -41,6 +43,7 @@ Option A — rename and type everything at once. The frontend has exactly two so
 
 ### `main.jsx` → `main.tsx`
 - Add non-null assertion on `getElementById('root')`: `document.getElementById('root') as HTMLElement`
+- Update import: `from './App.jsx'` → `from './App'` (TypeScript with `moduleResolution: bundler` rejects explicit `.jsx` extensions pointing to `.tsx` files)
 
 ### `App.jsx` → `App.tsx`
 Introduce the following types:
@@ -60,6 +63,9 @@ interface ResultSectionProps {
 }
 ```
 
+Error handling:
+- `catch (e)` binding is typed as `unknown` under `"strict": true`; `setError(e.message)` will not compile. Fix: `setError((e as Error).message)`
+
 State generics:
 - `useState<string>('')` — keywords
 - `useState<SearchResult[]>([])` — semanticResults, keywordResults
@@ -75,10 +81,12 @@ Event handler types:
 
 ## Section 3: ESLint & Build
 
-- `eslint.config.js` file pattern: `**/*.{js,jsx,ts,tsx}`
-- Add `@typescript-eslint` parser and recommended rules
-- Replace `no-unused-vars` with `@typescript-eslint/no-unused-vars` (same pattern: `varsIgnorePattern: '^[A-Z_]'`)
-- Vite handles `.tsx` natively via `@vitejs/plugin-react` — no Vite config changes needed beyond the rename
+- Add `typescript-eslint` (the unified package, not the legacy `@typescript-eslint/eslint-plugin`) to devDependencies
+- Use `tseslint.config(...)` helper (from `typescript-eslint`) instead of `defineConfig` from `eslint/config`, and spread `...tseslint.configs.recommended` for TS rules
+- Extend file pattern to `**/*.{js,jsx,ts,tsx}` (covers `eslint.config.js` and `vite.config.ts` as well)
+- Replace `no-unused-vars` with `@typescript-eslint/no-unused-vars` (`varsIgnorePattern: '^_'` — standard convention for intentionally-unused identifiers)
+- Type-aware linting (`parserOptions.project`) is **out of scope** for this migration — not setting it keeps ESLint fast and avoids needing a separate `tsconfig.eslint.json`
+- Vite handles `.tsx` natively via `@vitejs/plugin-react` — no other Vite config changes needed beyond the rename
 - Maven build (`frontend-maven-plugin` runs `npm run build`) requires no `pom.xml` changes
 
 ---
@@ -91,7 +99,8 @@ Event handler types:
 | `frontend/tsconfig.json` | Create new |
 | `frontend/vite.config.js` | Rename to `vite.config.ts` |
 | `frontend/eslint.config.js` | Add TS parser + rules, extend file patterns |
-| `frontend/src/main.jsx` | Rename to `main.tsx`, add non-null assertion |
+| `frontend/index.html` | Update script reference from `/src/main.jsx` to `/src/main.tsx` |
+| `frontend/src/main.jsx` | Rename to `main.tsx`, add non-null assertion, update App import |
 | `frontend/src/App.jsx` | Rename to `App.tsx`, add all type annotations |
 
 ---
