@@ -1,10 +1,23 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import './App.css'
 
 const PAGE_SIZE = 10
 const SEMANTIC_PAGE_SIZE = 5
 
-function buildHref(source) {
+interface SearchResult {
+  source: string
+  name?: string
+  snippet?: string
+}
+
+interface ResultSectionProps {
+  title: string
+  results: SearchResult[]
+  topSummary?: string | null
+  pageSize?: number
+}
+
+function buildHref(source: string): string {
   if (source.startsWith('http')) {
     return source
   }
@@ -12,7 +25,7 @@ function buildHref(source) {
   return '/localFile?filePath=' + encodeURIComponent(normalized)
 }
 
-function ResultSection({ title, results, topSummary, pageSize = PAGE_SIZE }) {
+function ResultSection({ title, results, topSummary, pageSize = PAGE_SIZE }: ResultSectionProps) {
   const [page, setPage] = useState(0)
   const totalPages = Math.ceil(results.length / pageSize)
   const pageResults = results.slice(page * pageSize, page * pageSize + pageSize)
@@ -63,12 +76,12 @@ function ResultSection({ title, results, topSummary, pageSize = PAGE_SIZE }) {
 
 function App() {
   const [keywords, setKeywords] = useState('')
-  const [semanticResults, setSemanticResults] = useState([])
-  const [keywordResults, setKeywordResults] = useState([])
+  const [semanticResults, setSemanticResults] = useState<SearchResult[]>([])
+  const [keywordResults, setKeywordResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
-  const [error, setError] = useState(null)
-  const [topSummary, setTopSummary] = useState(undefined)
+  const [error, setError] = useState<string | null>(null)
+  const [topSummary, setTopSummary] = useState<string | null | undefined>(undefined)
 
   async function doSearch() {
     const trimmed = keywords.trim()
@@ -88,7 +101,7 @@ function App() {
         semanticRes.json(),
         keywordRes.json(),
       ])
-      const semantic = semanticData.results || []
+      const semantic: SearchResult[] = semanticData.results || []
       setSemanticResults(semantic)
       setKeywordResults(keywordData.results || [])
       setSearched(true)
@@ -105,13 +118,13 @@ function App() {
           .catch(() => setTopSummary(''))
       }
     } catch (e) {
-      setError(e.message)
+      setError((e as Error).message)
     } finally {
       setLoading(false)
     }
   }
 
-  function handleKeyDown(e) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') doSearch()
   }
 
