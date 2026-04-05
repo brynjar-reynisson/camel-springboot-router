@@ -9,6 +9,8 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    port: 5174,
+    allowedHosts: ['digitalme.breynisson.org'],
     proxy: {
       '/search': 'http://localhost:8080',
       '/semanticSearch': 'http://localhost:8080',
