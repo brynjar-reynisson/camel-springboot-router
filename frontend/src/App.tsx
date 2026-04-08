@@ -1,86 +1,11 @@
 import { useState } from 'react'
 import './App.css'
+import { SearchResult, SearchResponse, SummarizeResponse } from './types'
+import { SearchBar } from './SearchBar'
+import { ResultSection } from './ResultSection'
 
 const PAGE_SIZE = 10
 const SEMANTIC_PAGE_SIZE = 5
-
-interface SearchResult {
-  source: string
-  name?: string
-  snippet?: string
-}
-
-interface ResultSectionProps {
-  title: string
-  results: SearchResult[]
-  topSummary?: string | null
-  pageSize?: number
-}
-
-interface SearchResponse {
-  results: SearchResult[]
-}
-
-interface SummarizeResponse {
-  summary: string
-}
-
-function buildHref(source: string): string {
-  if (source.startsWith('http')) {
-    return source
-  }
-  const normalized = source.replaceAll('\\', '/')
-  return '/localFile?filePath=' + encodeURIComponent(normalized)
-}
-
-function ResultSection({ title, results, topSummary, pageSize = PAGE_SIZE }: ResultSectionProps) {
-  const [page, setPage] = useState(0)
-  const totalPages = Math.ceil(results.length / pageSize)
-  const pageResults = results.slice(page * pageSize, page * pageSize + pageSize)
-
-  if (results.length === 0) return null
-
-  return (
-    <div className="result-section">
-      <h2 className="result-section-title">{title}</h2>
-      <p className="result-count">
-        {results.length} result{results.length !== 1 ? 's' : ''}
-        {totalPages > 1 && ` — page ${page + 1} of ${totalPages}`}
-      </p>
-      <ul>
-        {pageResults.map((item, i) => {
-          const label = item.name || item.source
-          const display = label.length > 90 ? label.slice(0, 90) + '...' : label
-          const isTop = i === 0 && page === 0 && topSummary !== undefined
-          return (
-            <li key={item.source}>
-              <a href={buildHref(item.source)} target="_blank" rel="noopener noreferrer">
-                {display}
-              </a>
-              {isTop && topSummary === null && (
-                <p className="result-summary result-summary--loading">Summarizing…</p>
-              )}
-              {isTop && topSummary && (
-                <p className="result-summary">{topSummary}</p>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-      {totalPages > 1 && (
-        <div className="pagination">
-          <button onClick={() => setPage(p => p - 1)} disabled={page === 0}>
-            ← Previous
-          </button>
-          <span>{page + 1} / {totalPages}</span>
-          <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>
-            Next →
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
 
 function App() {
   const [keywords, setKeywords] = useState('')
@@ -90,6 +15,7 @@ function App() {
   const [searched, setSearched] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [topSummary, setTopSummary] = useState<string | null | undefined>(undefined)
+  const [searchId, setSearchId] = useState(0)
 
   async function doSearch() {
     const trimmed = keywords.trim()
@@ -97,6 +23,7 @@ function App() {
     setLoading(true)
     setError(null)
     setTopSummary(undefined)
+    setSearchId(id => id + 1)
     try {
       const encoded = encodeURIComponent(trimmed)
       const [semanticRes, keywordRes] = await Promise.all([
@@ -132,28 +59,17 @@ function App() {
     }
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') doSearch()
-  }
-
   const totalResults = semanticResults.length + keywordResults.length
 
   return (
     <div className={searched ? 'app' : 'app app--centered'}>
       <h1 className="app-title">Digital Me</h1>
-      <div className="search-bar">
-        <input
-          type="search"
-          placeholder="Search..."
-          value={keywords}
-          onChange={e => setKeywords(e.target.value)}
-          onKeyDown={handleKeyDown}
-          autoFocus
-        />
-        <button onClick={doSearch} disabled={loading}>
-          {loading ? 'Searching…' : 'Search'}
-        </button>
-      </div>
+      <SearchBar 
+        keywords={keywords} 
+        setKeywords={setKeywords} 
+        onSearch={doSearch} 
+        loading={loading} 
+      />
 
       {error && <p className="error">Error: {error}</p>}
 
@@ -163,8 +79,19 @@ function App() {
             <p className="no-results">No results for <strong>{keywords}</strong>.</p>
           ) : (
             <>
-              <ResultSection title="Semantic Search Results" results={semanticResults} topSummary={topSummary} pageSize={SEMANTIC_PAGE_SIZE} />
-              <ResultSection title="Keyword Search Results" results={keywordResults} />
+              <ResultSection 
+                key={`semantic-${searchId}`}
+                title="Semantic Search Results" 
+                results={semanticResults} 
+                topSummary={topSummary} 
+                pageSize={SEMANTIC_PAGE_SIZE} 
+              />
+              <ResultSection 
+                key={`keyword-${searchId}`}
+                title="Keyword Search Results" 
+                results={keywordResults} 
+                pageSize={PAGE_SIZE}
+              />
             </>
           )}
         </div>
@@ -174,3 +101,4 @@ function App() {
 }
 
 export default App
+
