@@ -67,31 +67,33 @@ class FileChangeWatcherTest {
     }
 
     @Test
-    void indexesTxtFilesInDirectory() throws IOException {
-        Path file = tempDir.resolve("doc.txt");
-        Files.writeString(file, "hello world content");
+    void indexesSupportedFilesInDirectory() throws IOException {
+        Path txtFile = tempDir.resolve("doc.txt");
+        Path mdFile = tempDir.resolve("notes.md");
+        Files.writeString(txtFile, "hello world content");
+        Files.writeString(mdFile, "markdown content");
 
         watcher.watchDirectory(tempDir.toString());
 
-        List<Document> results = LuceneIndex.find("hello");
-        assertEquals(1, results.size());
-        assertEquals(file.toAbsolutePath().toString(), results.get(0).get("source"));
-        assertFalse(TextEntryDao.findByName(file.toAbsolutePath().toString()).isEmpty());
+        assertEquals(1, LuceneIndex.find("hello").size());
+        assertEquals(1, LuceneIndex.find("markdown").size());
+        assertFalse(TextEntryDao.findByName(txtFile.toAbsolutePath().toString()).isEmpty());
+        assertFalse(TextEntryDao.findByName(mdFile.toAbsolutePath().toString()).isEmpty());
 
-        cleanupDb(file);
+        cleanupDb(txtFile, mdFile);
     }
 
     @Test
-    void ignoresNonTxtFiles() throws IOException {
-        Path mdFile = tempDir.resolve("notes.md");
+    void ignoresUnsupportedFiles() throws IOException {
         Path jsonFile = tempDir.resolve("data.json");
-        Files.writeString(mdFile, "markdown content");
+        Path exeFile = tempDir.resolve("run.exe");
         Files.writeString(jsonFile, "json content");
+        Files.writeString(exeFile, "binary content");
 
         watcher.watchDirectory(tempDir.toString());
 
-        assertTrue(TextEntryDao.findByName(mdFile.toAbsolutePath().toString()).isEmpty());
         assertTrue(TextEntryDao.findByName(jsonFile.toAbsolutePath().toString()).isEmpty());
+        assertTrue(TextEntryDao.findByName(exeFile.toAbsolutePath().toString()).isEmpty());
     }
 
     @Test

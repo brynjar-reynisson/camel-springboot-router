@@ -5,6 +5,9 @@ import com.breynisson.router.digitalme.DigitalMeStorage;
 import com.breynisson.router.jdbc.TextEntryDao;
 import com.breynisson.router.jdbc.model.TextEntry;
 
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +51,8 @@ public class FileChangeWatcher {
         try (Stream<Path> pathsStream = Files.list(Paths.get(directoryPath))) {
             pathsStream.forEach((path) -> {
                 File file = path.toFile();
-                if (file.getName().endsWith("txt")) {
+                String name = file.getName().toLowerCase();
+                if (name.endsWith(".txt") || name.endsWith(".md") || name.endsWith(".pdf")) {
                     try {
                         String source = file.getAbsolutePath();
                         List<TextEntry> textEntries = TextEntryDao.findByName(source);
@@ -72,7 +76,20 @@ public class FileChangeWatcher {
         AddContentRequest req = new AddContentRequest();
         req.setSource(source);
         req.setName(file.getName());
-        req.setContent(Files.readString(file.toPath()));
+        req.setContent(extractContent(file));
         storage.addContent(req);
+    }
+
+    private String extractContent(File file) throws IOException {
+        String name = file.getName().toLowerCase();
+        if (name.endsWith(".pdf")) {
+            try (PDDocument document = Loader.loadPDF(file)) {
+                PDFTextStripper stripper = new PDFTextStripper();
+                return stripper.getText(document);
+            }
+        } else {
+            // Assume text-based for .txt, .md, etc.
+            return Files.readString(file.toPath());
+        }
     }
 }
