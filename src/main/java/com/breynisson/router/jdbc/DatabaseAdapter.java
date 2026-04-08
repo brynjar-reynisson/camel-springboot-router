@@ -218,7 +218,7 @@ public class DatabaseAdapter {
             runSql(sqlScript);
         }
 
-        runSql("UPDATE APPLICATION_METADATA SET VALUE='" + max + "' WHERE KEY='database.version';");
+        runPreparedStatement("UPDATE APPLICATION_METADATA SET VALUE=? WHERE KEY='database.version';", max);
     }
 
     private static String inputStreamToString(InputStream inputStream) {

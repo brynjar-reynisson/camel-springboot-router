@@ -9,7 +9,7 @@
     </parent>
 
     <groupId>com.breynisson</groupId>
-    <artifactId>camel-springboot-router</artifactId>
+    <artifactId>digital-me</artifactId>
     <version>0.1</version>
 
     <properties>

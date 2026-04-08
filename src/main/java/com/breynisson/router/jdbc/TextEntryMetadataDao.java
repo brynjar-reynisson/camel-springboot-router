@@ -6,7 +6,7 @@ public class TextEntryMetadataDao {
     private static final String TABLE_NAME = "TEXT_ENTRY_METADATA";
 
     public static void insert(String uuid, String key, String value) {
-        DatabaseAdapter.runSql("INSERT INTO " + TABLE_NAME + " (TEXT_ENTRY_UUID,KEY,VALUE) VALUES ('" + uuid + "','" + key + "','" + value + "')");
+        DatabaseAdapter.runPreparedStatement("INSERT INTO " + TABLE_NAME + " (TEXT_ENTRY_UUID,KEY,VALUE) VALUES (?,?,?)", uuid, key, value);
     }
 
     public static String get(String uuid, String key) {
@@ -14,6 +14,6 @@ public class TextEntryMetadataDao {
     }
 
     public static void deleteByUUID(String uuid) {
-        DatabaseAdapter.runSql("DELETE FROM " + TABLE_NAME + " WHERE TEXT_ENTRY_UUID='" + uuid + "'");
+        DatabaseAdapter.runPreparedStatement("DELETE FROM " + TABLE_NAME + " WHERE TEXT_ENTRY_UUID=?", uuid);
     }
 }

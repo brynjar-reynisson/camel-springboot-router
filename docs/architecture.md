@@ -56,7 +56,6 @@ The app must be run with `digital-me-dev/` as the working directory so relative 
 ### `TextEntryDao`
 - `NAME` column stores the file absolute path or URL (`source`)
 - `findByName(source)` is used to check if an entry exists before insert vs. update
-- Note: SQL is built via string concatenation (not parameterized for some queries)
 
 ### `EmbeddingClient` (functional interface)
 - Single method: `float[] embed(String text)` — returns `null` when Ollama is unavailable

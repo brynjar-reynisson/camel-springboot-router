@@ -6,7 +6,7 @@ public class ApplicationMetadataDao {
     private static final String TABLE_NAME = "APPLICATION_METADATA";
 
     public static void insert(String key, String value) {
-        DatabaseAdapter.runSql("INSERT INTO " + TABLE_NAME + " (KEY, VALUE) VALUES ('" + key + "','" + value + "')");
+        DatabaseAdapter.runPreparedStatement("INSERT INTO " + TABLE_NAME + " (KEY, VALUE) VALUES (?,?)", key, value);
     }
 
     public static String getValue(String key) {
@@ -16,6 +16,6 @@ public class ApplicationMetadataDao {
     }
 
     public static void deleteValue(String key) {
-        DatabaseAdapter.runSql("DELETE FROM " + TABLE_NAME + " WHERE KEY='" + key + "'");
+        DatabaseAdapter.runPreparedStatement("DELETE FROM " + TABLE_NAME + " WHERE KEY=?", key);
     }
 }

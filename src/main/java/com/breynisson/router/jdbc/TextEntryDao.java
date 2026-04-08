@@ -6,8 +6,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import static com.breynisson.router.jdbc.DatabaseAdapter.runSql;
-
 public class TextEntryDao {
 
     private static final String TABLE_NAME = "TEXT_ENTRY";
@@ -18,21 +16,21 @@ public class TextEntryDao {
             instant = Instant.now();
         }
         String dateTimeStr = DatabaseAdapter.instantToTime(instant);
-        runSql("INSERT INTO " + TABLE_NAME + " (UUID, NAME, TIME) VALUES ('" + uuid + "', '" + name + "', '" + dateTimeStr + "')");
+        DatabaseAdapter.runPreparedStatement("INSERT INTO " + TABLE_NAME + " (UUID, NAME, TIME) VALUES (?, ?, ?)", uuid, name, dateTimeStr);
         return uuid;
     }
 
     public static void update(TextEntry textEntry) {
         String dateTimeStr = DatabaseAdapter.instantToTime(textEntry.instant);
-        runSql("UPDATE " + TABLE_NAME + " SET NAME='" + textEntry.name + "', TIME='" + dateTimeStr + "' WHERE UUID='" +  textEntry.uuid + "'");
+        DatabaseAdapter.runPreparedStatement("UPDATE " + TABLE_NAME + " SET NAME=?, TIME=? WHERE UUID=?", textEntry.name, dateTimeStr, textEntry.uuid);
     }
 
     public static TextEntry findByUUID(String uuid) {
-        return DatabaseAdapter.selectOne("SELECT * FROM " + TABLE_NAME + " WHERE UUID='" + uuid + "'", new TextEntry.ResultSetTransform());
+        return DatabaseAdapter.selectOne("SELECT * FROM " + TABLE_NAME + " WHERE UUID=?", new TextEntry.ResultSetTransform(), uuid);
     }
 
     public static List<TextEntry> findByName(String name) {
-        return DatabaseAdapter.selectList("SELECT * FROM " + TABLE_NAME + " WHERE NAME='" + name + "'", new TextEntry.ResultSetTransform());
+        return DatabaseAdapter.selectList("SELECT * FROM " + TABLE_NAME + " WHERE NAME=?", new TextEntry.ResultSetTransform(), name);
     }
 
     public static void insertOrUpdate(String source) {
@@ -47,6 +45,6 @@ public class TextEntryDao {
 
     public static void delete(String uuid) {
         TextEntryMetadataDao.deleteByUUID(uuid);
-        DatabaseAdapter.runSql("DELETE FROM " + TABLE_NAME + " WHERE UUID='" + uuid + "'");
+        DatabaseAdapter.runPreparedStatement("DELETE FROM " + TABLE_NAME + " WHERE UUID=?", uuid);
     }
 }

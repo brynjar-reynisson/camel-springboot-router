@@ -29,7 +29,7 @@ Personal search engine that indexes local `.txt` files and web pages visited via
 ## Project structure
 
 ```
-camel-springboot-router/
+digital-me/
 ├── chrome-extension/         Browser extension (Manifest V3)
 │   ├── manifest.json
 │   ├── content-script.js     Extracts page text, sends to background
@@ -100,7 +100,7 @@ camel-springboot-router/
 ### Full build (backend + frontend)
 ```bash
 mvn package
-java -jar target/camel-springboot-router-0.1.jar
+java -jar target/digital-me-0.1.jar
 ```
 The `frontend-maven-plugin` runs `npm install` + `npm run build` automatically as part of `mvn package`. Built assets go to `src/main/resources/static/` and are committed to git.
 

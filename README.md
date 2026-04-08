@@ -41,7 +41,7 @@ A personal search engine that indexes your local files and browsing history so y
 **Build and start:**
 ```bash
 mvn package
-java -jar target/camel-springboot-router-0.1.jar
+java -jar target/digital-me-0.1.jar
 ```
 
 The app will be available at [http://localhost:8080](http://localhost:8080).
