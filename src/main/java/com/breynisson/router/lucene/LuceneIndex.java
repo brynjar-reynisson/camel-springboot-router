@@ -15,6 +15,7 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.search.highlight.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.BytesRef;
 
 import java.io.File;
 import java.io.IOException;
@@ -77,6 +78,20 @@ public class LuceneIndex {
             highlighter.setTextFragmenter(new SimpleSpanFragmenter(scorer, 100));
 
             List<SearchResult> results = new ArrayList<>();
+            
+            // Extract query terms for frequency counting
+            Set<String> queryTerms = new HashSet<>();
+            query.visit(new QueryVisitor() {
+                @Override
+                public void consumeTerms(Query query, Term... terms) {
+                    for (Term t : terms) {
+                        if (FIELD_BODY.equals(t.field())) {
+                            queryTerms.add(t.text().toLowerCase());
+                        }
+                    }
+                }
+            });
+
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                 Document doc = searcher.doc(scoreDoc.doc);
                 String source = doc.get(FIELD_SOURCE);
@@ -90,7 +105,33 @@ public class LuceneIndex {
                     snippet = text.length() > 100 ? text.substring(0, 100) + "..." : text;
                 }
 
-                results.add(new SearchResult(source, name, snippet));
+                // Count term frequencies
+                Map<String, Integer> freqMap = new TreeMap<>();
+                Terms vector = reader.getTermVector(scoreDoc.doc, FIELD_BODY);
+                if (vector != null) {
+                    TermsEnum termsEnum = vector.iterator();
+                    BytesRef term;
+                    while ((term = termsEnum.next()) != null) {
+                        String termText = term.utf8ToString().toLowerCase();
+                        if (queryTerms.contains(termText)) {
+                            freqMap.put(termText, (int) termsEnum.totalTermFreq());
+                        }
+                    }
+                } else {
+                    // Fallback if no term vectors: simple string scan (less accurate but better than nothing)
+                    String lowerText = text.toLowerCase();
+                    for (String qTerm : queryTerms) {
+                        int count = 0;
+                        int lastIdx = 0;
+                        while ((lastIdx = lowerText.indexOf(qTerm, lastIdx)) != -1) {
+                            count++;
+                            lastIdx += qTerm.length();
+                        }
+                        if (count > 0) freqMap.put(qTerm, count);
+                    }
+                }
+
+                results.add(new SearchResult(source, name, snippet, (double) scoreDoc.score, freqMap));
             }
             return results;
         } catch (Exception e) {

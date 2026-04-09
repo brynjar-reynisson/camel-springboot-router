@@ -1,15 +1,20 @@
 package com.breynisson.router.digitalme;
 
+import java.util.Map;
 import java.util.Objects;
 
-public record SearchResult(String source, String name, String snippet, Double score) {
+public record SearchResult(String source, String name, String snippet, Double score, Map<String, Integer> termFrequencies) {
 
     public SearchResult(String source, String name) {
-        this(source, name, null, null);
+        this(source, name, null, null, null);
     }
 
     public SearchResult(String source, String name, String snippet) {
-        this(source, name, snippet, null);
+        this(source, name, snippet, null, null);
+    }
+
+    public SearchResult(String source, String name, String snippet, Double score) {
+        this(source, name, snippet, score, null);
     }
 
     public boolean equals(Object other) {

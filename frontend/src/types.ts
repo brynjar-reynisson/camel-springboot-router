@@ -3,6 +3,7 @@ export interface SearchResult {
   name?: string
   snippet?: string
   score?: number
+  termFrequencies?: Record<string, number>
 }
 
 export interface SearchResponse {

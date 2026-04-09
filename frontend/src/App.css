@@ -209,6 +209,13 @@ body {
   font-weight: 500;
 }
 
+.result-frequencies {
+  font-size: 0.75rem;
+  color: #777;
+  font-style: italic;
+  margin-top: 2px;
+}
+
 .result-section-title {
   font-size: 1rem;
   font-weight: 600;
