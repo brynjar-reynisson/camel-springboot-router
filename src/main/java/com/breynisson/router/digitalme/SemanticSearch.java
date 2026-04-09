@@ -36,7 +36,7 @@ public class SemanticSearch {
     }
 
     /** Returns top-10 semantically similar results; empty list if Ollama is unavailable. */
-    public List<Map<String, String>> search(String query) {
+    public List<SearchResult> search(String query) {
         return embeddingIndex.findSimilar(query, 10).stream()
                 .filter(r -> !ExclusionRules.isExcluded(r.sourceUrl()))
                 .map(r -> {
@@ -47,9 +47,7 @@ public class SemanticSearch {
                     } catch (IOException e) {
                         log.warn("Could not read {} for snippet", r.filePath());
                     }
-                    return Map.of("source", r.sourceUrl(),
-                                  "name", p.getFileName().toString(),
-                                  "snippet", snip);
+                    return new SearchResult(r.sourceUrl(), p.getFileName().toString(), snip, (double) r.score());
                 })
                 .toList();
     }

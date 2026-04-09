@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 @RestController
 public class IndexPage {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(IndexPage.class);
     private final DigitalMeStorage storage;
     private final SemanticSearch semanticSearch;
     private final EmbeddingClient embeddingClient;
@@ -58,9 +59,9 @@ public class IndexPage {
 
     @GetMapping("/semanticSearch")
     public SearchResponse semanticSearch(@RequestParam String keywords) {
-        LinkedHashSet<SearchResult> results = semanticSearch.search(keywords).stream()
-                .map(r -> new SearchResult(r.get("source"), r.get("name"), r.get("snippet")))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        log.info("Semantic Search: {}", keywords);
+        LinkedHashSet<SearchResult> results = new LinkedHashSet<>(semanticSearch.search(keywords));
+        log.info("Semantic Search: {} found {} results", keywords, results.size());
         return new SearchResponse(results);
     }
 

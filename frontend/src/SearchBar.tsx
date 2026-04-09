@@ -40,7 +40,7 @@ export function SearchBar({ keywords, setKeywords, onSearch, loading }: SearchBa
         />
         <div 
           className={`ollama-status ${status?.online ? 'ollama-status--online' : 'ollama-status--offline'}`}
-          title={status ? `Ollama: ${status.online ? 'Online' : 'Offline'} (Embed: ${status.embedding}, Sum: ${status.summarize})` : 'Checking Ollama...'}
+          title={status?.online ? 'Semantic search active' : 'Semantic search unavailable'}
         />
       </div>
       <button onClick={onSearch} disabled={loading}>

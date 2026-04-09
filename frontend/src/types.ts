@@ -2,6 +2,7 @@ export interface SearchResult {
   source: string
   name?: string
   snippet?: string
+  score?: number
 }
 
 export interface SearchResponse {

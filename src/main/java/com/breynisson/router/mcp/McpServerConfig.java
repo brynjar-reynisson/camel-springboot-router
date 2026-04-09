@@ -257,7 +257,9 @@ public class McpServerConfig {
             }
             try {
                 // Semantic search via embeddings; falls back to keyword scan when Ollama is unavailable
-                List<Map<String, String>> results = semanticSearch.search(kw.toString());
+                List<Map<String, String>> results = semanticSearch.search(kw.toString()).stream()
+                        .map(r -> Map.of("source", r.source(), "name", r.name(), "snippet", r.snippet()))
+                        .toList();
                 if (results.isEmpty()) {
                     results = keywordSearch(kw.toString());
                 }
