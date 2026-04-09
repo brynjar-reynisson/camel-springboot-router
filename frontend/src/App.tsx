@@ -16,44 +16,60 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [topSummary, setTopSummary] = useState<string | null | undefined>(undefined)
   const [searchId, setSearchId] = useState(0)
+  const [semanticError, setSemanticError] = useState<string | null>(null)
 
   async function doSearch() {
     const trimmed = keywords.trim()
     if (!trimmed) return
     setLoading(true)
     setError(null)
+    setSemanticError(null)
     setTopSummary(undefined)
     setSearchId(id => id + 1)
-    try {
-      const encoded = encodeURIComponent(trimmed)
-      const [semanticRes, keywordRes] = await Promise.all([
-        fetch('/semanticSearch?keywords=' + encoded),
-        fetch('/search?keywords=' + encoded),
-      ])
-      if (!semanticRes.ok) throw new Error('Semantic search returned ' + semanticRes.status)
-      if (!keywordRes.ok) throw new Error('Keyword search returned ' + keywordRes.status)
-      const [semanticData, keywordData] = await Promise.all([
-        semanticRes.json() as Promise<SearchResponse>,
-        keywordRes.json() as Promise<SearchResponse>,
-      ])
-      const semantic: SearchResult[] = semanticData.results || []
-      setSemanticResults(semantic)
-      setKeywordResults(keywordData.results || [])
-      setSearched(true)
+    
+    const encoded = encodeURIComponent(trimmed)
 
-      if (semantic.length > 0 && semantic[0].snippet) {
-        setTopSummary(null)
-        fetch('/summarize', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: semantic[0].snippet }),
-        })
-          .then(r => r.json() as Promise<SummarizeResponse>)
-          .then(d => setTopSummary(d.summary || ''))
-          .catch(() => setTopSummary(''))
-      }
-    } catch (e) {
-      setError((e as Error).message)
+    // Run searches in parallel but handle them independently
+    const semanticPromise = fetch('/semanticSearch?keywords=' + encoded)
+      .then(async res => {
+        if (!res.ok) throw new Error('Semantic search returned ' + res.status)
+        const data = await res.json() as SearchResponse
+        const results = data.results || []
+        setSemanticResults(results)
+        
+        if (results.length > 0 && results[0].snippet) {
+          setTopSummary(null)
+          fetch('/summarize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: results[0].snippet }),
+          })
+            .then(r => r.json() as Promise<SummarizeResponse>)
+            .then(d => setTopSummary(d.summary || ''))
+            .catch(() => setTopSummary(''))
+        }
+      })
+      .catch(e => {
+        console.error('Semantic search failed', e)
+        setSemanticError(e.message)
+        setSemanticResults([])
+      })
+
+    const keywordPromise = fetch('/search?keywords=' + encoded)
+      .then(async res => {
+        if (!res.ok) throw new Error('Keyword search returned ' + res.status)
+        const data = await res.json() as SearchResponse
+        setKeywordResults(data.results || [])
+      })
+      .catch(e => {
+        console.error('Keyword search failed', e)
+        setError(e.message)
+        setKeywordResults([])
+      })
+
+    try {
+      await Promise.all([semanticPromise, keywordPromise])
+      setSearched(true)
     } finally {
       setLoading(false)
     }

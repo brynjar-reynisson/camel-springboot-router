@@ -37,12 +37,40 @@ body {
   margin-bottom: 16px;
 }
 
-.search-bar input {
+.search-input-wrapper {
+  position: relative;
   flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.search-bar input {
+  width: 100%;
   padding: 10px 14px;
+  padding-right: 36px;
   font-size: 1rem;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+.ollama-status {
+  position: absolute;
+  right: 12px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ccc;
+  transition: background 0.3s ease;
+}
+
+.ollama-status--online {
+  background: #28a745;
+  box-shadow: 0 0 4px #28a745;
+}
+
+.ollama-status--offline {
+  background: #dc3545;
+  box-shadow: 0 0 4px #dc3545;
 }
 
 .search-bar input:focus {
@@ -147,6 +175,21 @@ body {
 .result-summary--loading {
   color: #999;
   font-style: italic;
+}
+
+.result-snippet {
+  font-size: 0.875rem;
+  color: #555;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.result-snippet mark {
+  background: #fff59d;
+  color: #000;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: 500;
 }
 
 .result-section-title {

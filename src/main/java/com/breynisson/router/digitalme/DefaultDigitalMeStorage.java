@@ -6,10 +6,6 @@ import com.breynisson.router.lucene.LuceneIndex;
 import com.breynisson.router.mcp.EmbeddingIndex;
 import com.breynisson.router.mcp.ResourceReceiver;
 
-import static com.breynisson.router.lucene.LuceneIndex.FIELD_NAME;
-import static com.breynisson.router.lucene.LuceneIndex.FIELD_SOURCE;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexableField;
 import org.jsoup.Jsoup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,14 +33,8 @@ public class DefaultDigitalMeStorage implements DigitalMeStorage {
     @Override
     public SearchResponse search(String keywords) {
         log.info("Search: {}", keywords);
-        List<Document> results = LuceneIndex.find(keywords);
-        LinkedHashSet<SearchResult> list = new LinkedHashSet<>();
-        for (Document document : results) {
-            String source = document.getField(FIELD_SOURCE).stringValue();
-            IndexableField nameField = document.getField(FIELD_NAME);
-            list.add(new SearchResult(source, nameField != null ? nameField.stringValue() : source));
-        }
-        return new SearchResponse(list);
+        List<SearchResult> results = LuceneIndex.find(keywords);
+        return new SearchResponse(new LinkedHashSet<>(results));
     }
 
     @Override

@@ -1,7 +1,9 @@
 package com.breynisson.router.lucene;
 
 import com.breynisson.router.RouterException;
+import com.breynisson.router.digitalme.SearchResult;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -10,6 +12,7 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
+import org.apache.lucene.search.highlight.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
@@ -22,6 +25,7 @@ public class LuceneIndex {
 
     public static final String FIELD_SOURCE = "source";
     public static final String FIELD_NAME = "name";
+    public static final String FIELD_BODY = "body";
 
     public static void createOrUpdateIndex(String content, String source) {
         createOrUpdateIndex(content, source, source);
@@ -48,7 +52,7 @@ public class LuceneIndex {
                     Field field = new StringField(key, value, Field.Store.YES);
                     doc.add(field);
                 });
-                TextField textField = new TextField("body", content, Field.Store.YES);
+                TextField textField = new TextField(FIELD_BODY, content, Field.Store.YES);
                 doc.add(textField);
                 writer.addDocument(doc);
             }
@@ -57,20 +61,38 @@ public class LuceneIndex {
         }
     }
 
-    public static List<Document> find(String phrase) {
+    public static List<SearchResult> find(String phrase) {
         try (Directory indexDir = FSDirectory.open(Paths.get(getIndexPath()));
              IndexReader reader = DirectoryReader.open(indexDir);
              Analyzer analyzer = new StandardAnalyzer();
         ) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            QueryParser queryParser = new QueryParser("body", analyzer);
+            QueryParser queryParser = new QueryParser(FIELD_BODY, analyzer);
             Query query = queryParser.parse(phrase);
-            TopDocs topDocs = searcher.search(query, 1000000);
-            List<Document> documents = new ArrayList<>();
+            TopDocs topDocs = searcher.search(query, 100); // reduced from 100 for sanity
+
+            org.apache.lucene.search.highlight.Formatter formatter = new SimpleHTMLFormatter("<mark>", "</mark>");
+            QueryScorer scorer = new QueryScorer(query);
+            Highlighter highlighter = new Highlighter(formatter, scorer);
+            highlighter.setTextFragmenter(new SimpleSpanFragmenter(scorer, 100));
+
+            List<SearchResult> results = new ArrayList<>();
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-                documents.add(searcher.doc(scoreDoc.doc));
+                Document doc = searcher.doc(scoreDoc.doc);
+                String source = doc.get(FIELD_SOURCE);
+                String name = doc.get(FIELD_NAME);
+                String text = doc.get(FIELD_BODY);
+
+                TokenStream tokenStream = TokenSources.getAnyTokenStream(reader, scoreDoc.doc, FIELD_BODY, analyzer);
+                String snippet = highlighter.getBestFragment(tokenStream, text);
+                
+                if (snippet == null || snippet.isBlank()) {
+                    snippet = text.length() > 100 ? text.substring(0, 100) + "..." : text;
+                }
+
+                results.add(new SearchResult(source, name, snippet));
             }
-            return documents;
+            return results;
         } catch (Exception e) {
             throw new RouterException(e);
         }

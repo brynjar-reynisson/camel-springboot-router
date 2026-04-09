@@ -6,4 +6,5 @@ package com.breynisson.router.mcp;
  */
 public interface EmbeddingClient {
     float[] embed(String text);
+    default boolean isAvailable() { return true; }
 }

@@ -64,4 +64,18 @@ public class OllamaSummarizeClient implements SummarizeClient {
             return null;
         }
     }
+
+    @Override
+    public boolean isAvailable() {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(ollamaUrl + "/"))
+                    .timeout(Duration.ofSeconds(2))
+                    .build();
+            HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+            return response.statusCode() == 200;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

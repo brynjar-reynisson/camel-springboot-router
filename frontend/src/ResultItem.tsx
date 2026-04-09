@@ -22,6 +22,12 @@ export function ResultItem({ item, isTop, topSummary }: ResultItemProps) {
       {isTop && topSummary && (
         <p className="result-summary">{topSummary}</p>
       )}
+      {!isTop && item.snippet && (
+        <p 
+          className="result-snippet" 
+          dangerouslySetInnerHTML={{ __html: item.snippet }} 
+        />
+      )}
     </li>
   )
 }

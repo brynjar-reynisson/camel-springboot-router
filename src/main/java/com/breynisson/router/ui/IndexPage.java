@@ -6,6 +6,8 @@ import com.breynisson.router.digitalme.DigitalMeStorage;
 import com.breynisson.router.digitalme.SearchResponse;
 import com.breynisson.router.digitalme.SearchResult;
 import com.breynisson.router.digitalme.SemanticSearch;
+import com.breynisson.router.mcp.EmbeddingClient;
+import com.breynisson.router.mcp.SummarizeClient;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.HtmlUtils;
@@ -15,6 +17,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -22,15 +25,30 @@ public class IndexPage {
 
     private final DigitalMeStorage storage;
     private final SemanticSearch semanticSearch;
+    private final EmbeddingClient embeddingClient;
+    private final SummarizeClient summarizeClient;
 
-    public IndexPage(DigitalMeStorage storage, SemanticSearch semanticSearch) {
+    public IndexPage(DigitalMeStorage storage, SemanticSearch semanticSearch, EmbeddingClient embeddingClient, SummarizeClient summarizeClient) {
         this.storage = storage;
         this.semanticSearch = semanticSearch;
+        this.embeddingClient = embeddingClient;
+        this.summarizeClient = summarizeClient;
     }
 
     @GetMapping("/")
     public RedirectView index() throws IOException, URISyntaxException {
         return new RedirectView("/index.html");
+    }
+
+    @GetMapping("/health/ollama")
+    public Map<String, Object> ollamaHealth() {
+        boolean embeddingAvailable = embeddingClient.isAvailable();
+        boolean summarizeAvailable = summarizeClient.isAvailable();
+        return Map.of(
+            "online", embeddingAvailable || summarizeAvailable,
+            "embedding", embeddingAvailable,
+            "summarize", summarizeAvailable
+        );
     }
 
     @GetMapping("/search")

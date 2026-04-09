@@ -18,7 +18,7 @@ class IndexPageTest {
     @BeforeEach
     void setUp() {
         storage = new TestDigitalMeStorage();
-        indexPage = new IndexPage(storage, null);
+        indexPage = new IndexPage(storage, null, text -> null, text -> null);
     }
 
     @Test

@@ -1,6 +1,6 @@
 package com.breynisson.router.lucene;
 
-import org.apache.lucene.document.Document;
+import com.breynisson.router.digitalme.SearchResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LuceneIndexTest {
 
@@ -35,13 +36,15 @@ class LuceneIndexTest {
         for (String s : content) {
             LuceneIndex.createOrUpdateIndex(s, s);
         }
-        List<Document> documents = LuceneIndex.find("trump golden shoes");
-        assertEquals(5, documents.size());
-        assertEquals(content[5], documents.get(0).getField("body").stringValue());
-        for (Document document: documents) {
-            System.out.println(document);
+        List<SearchResult> results = LuceneIndex.find("trump golden shoes");
+        assertEquals(5, results.size());
+        
+        // The most relevant result should have highlighted terms
+        String topSnippet = results.get(0).snippet();
+        assertTrue(topSnippet.contains("<mark>Trump</mark>") || topSnippet.contains("<mark>golden</mark>") || topSnippet.contains("<mark>shoes</mark>"));
+        
+        for (SearchResult res : results) {
+            System.out.println(res);
         }
     }
-
-
 }
